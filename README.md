@@ -119,7 +119,8 @@ To use real human performances or other audio you have rights to use:
    Up to 100 files are stored. Corrupt/unsupported files produce visible errors.
 3. Imported files are copied into the app's Application Support directory; moving
    the source file afterward is safe. No persistent external file permissions are needed.
-4. Select the active pack, choose **Use Custom Mode**, and optionally assign each
+4. Select the active pack (remembered across launches), choose **Use Custom Mode**,
+   and optionally assign each
    file to Single, Double, Triple, or Any rhythm. A gesture without matching clips
    produces an error instead of playing an unrelated fallback.
 5. Use the test buttons to audition. The trash button removes that imported copy.
@@ -128,8 +129,9 @@ Settings, unlock state, counters and library metadata use UserDefaults. Audio is
 stored locally under `Application Support/SlapBookPro/CustomSounds` inside the app's
 sandbox container. Imports are never uploaded. Launch at Login uses `SMAppService`;
 install a signed build in `/Applications` before enabling it. macOS may require
-approval in System Settings → General → Login Items. The app displays actual status
-and registration errors rather than claiming success.
+approval in System Settings → General → Login Items. Pending registration remains
+cancelable, and a review button opens the relevant settings. Status refreshes when
+the app becomes active. Registration failures are shown explicitly.
 
 ## Architecture and verification
 

@@ -1,54 +1,82 @@
-# Validation and continuation notes
+# Validation and handoff
 
-Paused at the user's request on 2 November 2026. Source and the local app package
-are saved; no commit, deployment, installation, or login-item registration was made.
+Updated 2 November 2026. Work is on `codex/final-lifecycle-polish` in focused local
+commits. The previous version (`3156246`) is on GitHub's `main`. No installation,
+login-item registration, or distribution deployment was performed.
 
-## Verified
+## Current verified build
 
-- Xcode 27.0 / Swift 6.4; native Swift 6 language mode, macOS 14 deployment target.
-- Debug build and optimized Apple silicon Release build succeed on macOS 27.0.1.
-- Final suite: **14 tests passed** (11 unit + 3 UI), zero failures.
-- UI tests verify sound preview with detection off; importing, copying, playing and
-  deleting a custom audio file; and global Option-Command-S delivery while Finder
-  is the foreground app. UI tests now use disposable preferences.
-- Unit tests verify gravity rejection, warm-up, sensitivity, debounce, invalid sensor
-  data and sleep gaps, cooldown, persisted settings, all 36 bundled WAVs, decoding,
-  corrupt/missing audio errors and shuffle behavior across refills.
-- Native Release app opens and schedules a reaction with mascot animation.
-- Release app Sandbox is enabled; normal build lacks Xcode's test-only exceptions.
-- Physical sensor presence was observed, but opening it returned
-  kIOReturnNotPermitted (0xe00002e2) both in the diagnostic and the normally launched
-  Release app. No real chassis tap recognition or left/right detection is claimed.
-  Experimental input was returned to off. Normal detection is enabled, volume 65%.
-- Dark appearance visually inspected. Stats from normal development smoke checks
-  were reset. No human recordings are bundled: all 36 clips are original CC0
-  synthesized character effects, disclosed in the UI and audio documentation.
-- Release code signature verified with codesign --verify --deep --strict; ZIP
-  integrity verified with unzip -t.
+- Xcode 27.0 / Swift 6.4, Swift 6 language mode, macOS 14 deployment target.
+- Debug test build and optimized Apple silicon Release build succeed on macOS 27.0.1.
+- **19 unit tests passed**, zero failures. The shared SlapBook scheme runs only
+  SlapBookTests, including through ⌘U. UI automation is excluded at the user's request.
+- Tests cover gravity rejection, warm-up, sensitivity, debounce, invalid data,
+  sleep gaps, cooldown, settings persistence, all 36 bundled WAVs, format conversion,
+  corrupt/missing audio errors, shuffle behavior, and human-recording provenance.
+- Isolated lifecycle tests verify canceling pending groups on sleep, suspending
+  audio/inputs, blocking input while asleep, resetting cooldown/debounce, one input
+  restart on wake, and no restart after shutdown. The computer was not put to sleep.
+- Login-service fakes verify pending approval can be canceled, duplicate registration
+  is avoided, activation refreshes status, and failures are visible. Real Login Items
+  were not changed. Approval status is distinct from actually running at login.
+- Custom pack selection restores across launches and prewarms only its selected
+  sounds in the bounded cache. Unrelated slider changes do not re-decode audio.
+- Audio output format is checked before graph setup/restart; unavailable output
+  produces an error. Physical device removal and output-route changes were not tested.
+- Release code signature passes `codesign --verify --deep --strict`; ZIP integrity
+  passes `unzip -t`. The app remains sandboxed.
 
-## Artifacts
+## Sounds
 
-- `dist/SlapBook-Pro-macOS.zip`: 5 MB local ad hoc signed developer build, containing
-  SlapBook.app. Not a notarized distribution release.
-- `/tmp/SlapBookPro-release/Build/Products/Release/SlapBook.app`: unpackaged Release.
-- `/tmp/slapbook-release.log`: successful final Release build log.
-- `/tmp/slapbook-test.log`: successful final 14-test run.
-- `/tmp/SlapBookPro-build/Logs/Test/Test-SlapBook-2026.11.02_15-10-56-+0200.xcresult`:
-  final Xcode test report. Temporary paths may eventually be cleaned by macOS.
+The app bundles 30 original synthesized character reactions and **six CC0 human
+vocal edits** in Dramatic Moans. Its long ah, short oh, gasps and sigh are arranged
+into single/double/triple reactions. Five public Freesound HQ MP3 previews were
+verified against their primary CC0 pages and committed with author credits, source
+URLs and SHA-256 hashes. These are compressed preview sources, not WAV masters.
 
-## Continue here
+`Tools/generate_sound_pack.py` rebuilt the pack offline using the committed sources,
+Python's standard library and macOS afconvert. Tests decode every resulting WAV,
+check 44.1 kHz mono PCM, peak levels and click-prevention fades, and verify the six
+recorded reactions have complete source metadata. Sound Credits is available in
+Settings. Audible latency and subjective quality have not been measured/listened
+through a monitoring system during this pass; Test Sound remains available.
 
-1. Finish native menu bar popover/close-window/reopen smoke checks. MenuBarExtra
-   is implemented and compiles; this interaction has not yet been manually verified.
-2. Visually inspect light appearance and any desired final UI adjustments.
-3. Listen to the synthesized voices on the intended speakers/headphones; playback
-   scheduling is verified, but audible latency and subjective audio quality are not
-   measured. Import original human performances if human-recorded voices are wanted.
-4. Test Launch at Login only after installing a signed build in Applications.
-   Actual registration/status/error handling is implemented but registration was
-   deliberately not enabled during development. Check real sleep/wake behavior.
-5. Further physical motion testing needs accessible sensor reports. Do not suggest
-   striking harder or promise that sensor access will become available.
+## Hardware and UI limits
 
-The README contains exact Xcode and command-line run instructions. There are no
-third-party dependencies. No extra GUI windows or services need to remain running.
+The host's SPU accelerometer entry was observed, but opening it returned
+`kIOReturnNotPermitted` (`0xe00002e2`) in both a read-only diagnostic and a normally
+launched Release GUI build. No real chassis tap recognition or left/right location
+is claimed. The explicitly labeled keyboard/button alternative remains the intended
+working input. See HARDWARE.md for the investigation and exact protocol caveats.
+
+The initial version previously passed three UI tests (preview with detection off,
+custom import/playback, and a shortcut from Finder). During this polish pass,
+experimental UI checks encountered automation focus/selector issues and are not
+used as current behavioral evidence. Further UI tests were stopped at the user's
+request; their new uncommitted changes were removed and the legacy target is excluded
+from the shared scheme. Menu-bar close/reopen, light appearance and real sleep/wake
+integration remain manual verification items. No actual login/logout cycle was run.
+
+## Focused implementation commits
+
+- `69a418d` — unavailable audio outputs and prepared-engine suspension.
+- `e49247a` — centralized sleep/wake and shutdown handling.
+- `60b612c` — pending launch-at-login approval and status refresh.
+- `25e1665` — remembered/prewarmed custom packs and reserved-name validation.
+- `4f8f916` — unit-only shared Xcode scheme.
+- `7c9c72c` — accessible muted menu bar symbol.
+- `b99ca8c` — credited human vocal reactions, generator, sources and provenance tests.
+
+## Saved artifacts
+
+- `dist/SlapBook-Pro-macOS.zip`: refreshed local ad hoc signed developer build,
+  containing SlapBook.app. This is not a notarized distribution release.
+- `/tmp/SlapBookPro-release/Build/Products/Release/SlapBook.app`: Release app.
+- `/tmp/slapbook-final-release.log`: final successful Release build log.
+- `/tmp/slapbook-human-test.log`: final 19-unit-test run, no UI automation.
+- `/tmp/SlapBookPro-build/Logs/Test/Test-SlapBook-2026.11.02_21-57-51-+0200.xcresult`:
+  final unit-test report. Temporary paths may eventually be cleaned by macOS.
+
+Use the README for exact Xcode/run/build instructions. No background build or test
+process needs to remain running. Real Launch at Login verification requires an
+installed signed build and the user's macOS approval when requested by the OS.
