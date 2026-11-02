@@ -1,0 +1,15 @@
+SlapBook Pro original synthesized character voices
+
+All sb_*.wav files in this directory are original procedural audio, created by
+Tools/generate_sound_pack.py. They contain no sampled recordings, Apple system
+speech output, third-party audio, copyrighted songs, or cloned human voices.
+They are stylized synthesized vocal effects, NOT recordings of human performers.
+
+To the extent possible under law, the author(s) have dedicated this generated
+audio and its sound_manifest.json metadata to the public domain under the
+Creative Commons CC0 1.0 Universal dedication:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+The Python generator and Swift implementation are project source code, not
+third-party dependencies. Imported audio remains the user's responsibility and
+is never represented as part of this CC0 pack.

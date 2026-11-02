@@ -1,0 +1,296 @@
+{
+  "version": 1,
+  "provenance": "Original formant-synthesized character voices; not human recordings.",
+  "license": "CC0-1.0",
+  "sampleRate": 44100,
+  "clips": [
+    {
+      "id": "sb_shy_1_1",
+      "mode": "shy",
+      "tapCount": 1,
+      "title": "Tiny squeak",
+      "file": "sb_shy_1_1.wav",
+      "duration": 0.38
+    },
+    {
+      "id": "sb_shy_1_2",
+      "mode": "shy",
+      "tapCount": 1,
+      "title": "Awkward giggle",
+      "file": "sb_shy_1_2.wav",
+      "duration": 0.38
+    },
+    {
+      "id": "sb_shy_2_1",
+      "mode": "shy",
+      "tapCount": 2,
+      "title": "Tiny squeak",
+      "file": "sb_shy_2_1.wav",
+      "duration": 0.683
+    },
+    {
+      "id": "sb_shy_2_2",
+      "mode": "shy",
+      "tapCount": 2,
+      "title": "Awkward giggle",
+      "file": "sb_shy_2_2.wav",
+      "duration": 0.683
+    },
+    {
+      "id": "sb_shy_3_1",
+      "mode": "shy",
+      "tapCount": 3,
+      "title": "Tiny squeak",
+      "file": "sb_shy_3_1.wav",
+      "duration": 0.91
+    },
+    {
+      "id": "sb_shy_3_2",
+      "mode": "shy",
+      "tapCount": 3,
+      "title": "Awkward giggle",
+      "file": "sb_shy_3_2.wav",
+      "duration": 0.91
+    },
+    {
+      "id": "sb_anime_1_1",
+      "mode": "anime",
+      "tapCount": 1,
+      "title": "Dramatic aaah",
+      "file": "sb_anime_1_1.wav",
+      "duration": 0.7
+    },
+    {
+      "id": "sb_anime_1_2",
+      "mode": "anime",
+      "tapCount": 1,
+      "title": "Heroic gasp",
+      "file": "sb_anime_1_2.wav",
+      "duration": 0.7
+    },
+    {
+      "id": "sb_anime_2_1",
+      "mode": "anime",
+      "tapCount": 2,
+      "title": "Dramatic aaah",
+      "file": "sb_anime_2_1.wav",
+      "duration": 1.195
+    },
+    {
+      "id": "sb_anime_2_2",
+      "mode": "anime",
+      "tapCount": 2,
+      "title": "Heroic gasp",
+      "file": "sb_anime_2_2.wav",
+      "duration": 1.195
+    },
+    {
+      "id": "sb_anime_3_1",
+      "mode": "anime",
+      "tapCount": 3,
+      "title": "Dramatic aaah",
+      "file": "sb_anime_3_1.wav",
+      "duration": 1.55
+    },
+    {
+      "id": "sb_anime_3_2",
+      "mode": "anime",
+      "tapCount": 3,
+      "title": "Heroic gasp",
+      "file": "sb_anime_3_2.wav",
+      "duration": 1.55
+    },
+    {
+      "id": "sb_drama_1_1",
+      "mode": "drama",
+      "tapCount": 1,
+      "title": "Theatrical sigh",
+      "file": "sb_drama_1_1.wav",
+      "duration": 1.15
+    },
+    {
+      "id": "sb_drama_1_2",
+      "mode": "drama",
+      "tapCount": 1,
+      "title": "Absolutely scandalous",
+      "file": "sb_drama_1_2.wav",
+      "duration": 1.15
+    },
+    {
+      "id": "sb_drama_2_1",
+      "mode": "drama",
+      "tapCount": 2,
+      "title": "Theatrical sigh",
+      "file": "sb_drama_2_1.wav",
+      "duration": 1.96
+    },
+    {
+      "id": "sb_drama_2_2",
+      "mode": "drama",
+      "tapCount": 2,
+      "title": "Absolutely scandalous",
+      "file": "sb_drama_2_2.wav",
+      "duration": 1.96
+    },
+    {
+      "id": "sb_drama_3_1",
+      "mode": "drama",
+      "tapCount": 3,
+      "title": "Theatrical sigh",
+      "file": "sb_drama_3_1.wav",
+      "duration": 2.54
+    },
+    {
+      "id": "sb_drama_3_2",
+      "mode": "drama",
+      "tapCount": 3,
+      "title": "Absolutely scandalous",
+      "file": "sb_drama_3_2.wav",
+      "duration": 2.54
+    },
+    {
+      "id": "sb_chaos_1_1",
+      "mode": "chaos",
+      "tapCount": 1,
+      "title": "Cartoon wobble",
+      "file": "sb_chaos_1_1.wav",
+      "duration": 0.8
+    },
+    {
+      "id": "sb_chaos_1_2",
+      "mode": "chaos",
+      "tapCount": 1,
+      "title": "Ridiculous squawk",
+      "file": "sb_chaos_1_2.wav",
+      "duration": 0.8
+    },
+    {
+      "id": "sb_chaos_2_1",
+      "mode": "chaos",
+      "tapCount": 2,
+      "title": "Cartoon wobble",
+      "file": "sb_chaos_2_1.wav",
+      "duration": 1.355
+    },
+    {
+      "id": "sb_chaos_2_2",
+      "mode": "chaos",
+      "tapCount": 2,
+      "title": "Ridiculous squawk",
+      "file": "sb_chaos_2_2.wav",
+      "duration": 1.355
+    },
+    {
+      "id": "sb_chaos_3_1",
+      "mode": "chaos",
+      "tapCount": 3,
+      "title": "Cartoon wobble",
+      "file": "sb_chaos_3_1.wav",
+      "duration": 1.75
+    },
+    {
+      "id": "sb_chaos_3_2",
+      "mode": "chaos",
+      "tapCount": 3,
+      "title": "Ridiculous squawk",
+      "file": "sb_chaos_3_2.wav",
+      "duration": 1.75
+    },
+    {
+      "id": "sb_secret_1_1",
+      "mode": "secret",
+      "tapCount": 1,
+      "title": "Forbidden ooo",
+      "file": "sb_secret_1_1.wav",
+      "duration": 0.95
+    },
+    {
+      "id": "sb_secret_1_2",
+      "mode": "secret",
+      "tapCount": 1,
+      "title": "Tiny existential crisis",
+      "file": "sb_secret_1_2.wav",
+      "duration": 0.95
+    },
+    {
+      "id": "sb_secret_2_1",
+      "mode": "secret",
+      "tapCount": 2,
+      "title": "Forbidden ooo",
+      "file": "sb_secret_2_1.wav",
+      "duration": 1.595
+    },
+    {
+      "id": "sb_secret_2_2",
+      "mode": "secret",
+      "tapCount": 2,
+      "title": "Tiny existential crisis",
+      "file": "sb_secret_2_2.wav",
+      "duration": 1.595
+    },
+    {
+      "id": "sb_secret_3_1",
+      "mode": "secret",
+      "tapCount": 3,
+      "title": "Forbidden ooo",
+      "file": "sb_secret_3_1.wav",
+      "duration": 2.05
+    },
+    {
+      "id": "sb_secret_3_2",
+      "mode": "secret",
+      "tapCount": 3,
+      "title": "Tiny existential crisis",
+      "file": "sb_secret_3_2.wav",
+      "duration": 2.05
+    },
+    {
+      "id": "sb_dramaticMoans_1_1",
+      "mode": "dramaticMoans",
+      "tapCount": 1,
+      "title": "Grand aaah",
+      "file": "sb_dramaticMoans_1_1.wav",
+      "duration": 1.45
+    },
+    {
+      "id": "sb_dramaticMoans_1_2",
+      "mode": "dramaticMoans",
+      "tapCount": 1,
+      "title": "Operatic oooh",
+      "file": "sb_dramaticMoans_1_2.wav",
+      "duration": 1.45
+    },
+    {
+      "id": "sb_dramaticMoans_2_1",
+      "mode": "dramaticMoans",
+      "tapCount": 2,
+      "title": "Grand aaah",
+      "file": "sb_dramaticMoans_2_1.wav",
+      "duration": 2.395
+    },
+    {
+      "id": "sb_dramaticMoans_2_2",
+      "mode": "dramaticMoans",
+      "tapCount": 2,
+      "title": "Operatic oooh",
+      "file": "sb_dramaticMoans_2_2.wav",
+      "duration": 2.395
+    },
+    {
+      "id": "sb_dramaticMoans_3_1",
+      "mode": "dramaticMoans",
+      "tapCount": 3,
+      "title": "Grand aaah",
+      "file": "sb_dramaticMoans_3_1.wav",
+      "duration": 3.05
+    },
+    {
+      "id": "sb_dramaticMoans_3_2",
+      "mode": "dramaticMoans",
+      "tapCount": 3,
+      "title": "Operatic oooh",
+      "file": "sb_dramaticMoans_3_2.wav",
+      "duration": 3.05
+    }
+  ]
+}
