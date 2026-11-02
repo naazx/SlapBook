@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Rebuild SlapBook's original synthesized character voices (Python stdlib only).
+"""Rebuild 30 original synthesized reactions and six CC0 human vocal edits.
 
-These are intentionally absurd formant-synthesized voices, NOT human recordings,
-licensed samples, or imitations of an identifiable person. No speech service,
-system voice, training data, network, or third-party asset is used.
+Uses Python's standard library and macOS afconvert for the committed MP3 sources.
+No network, speech service, system voice, or voice cloning is involved.
 """
 
 import json
@@ -12,6 +11,7 @@ from pathlib import Path
 import random
 import struct
 import wave
+from human_reactions import recorded_reactions
 
 RATE = 44100
 ROOT = Path(__file__).resolve().parents[1]
@@ -108,13 +108,18 @@ def render(mode, tap_count, variant, pitch, duration, seed):
 
 def main():
     DEST.mkdir(parents=True, exist_ok=True)
+    human, sources = recorded_reactions(RATE, ROOT / "Tools" / "AudioSources")
     entries = []
     for mode_index, (mode, (first, second, pitch, duration)) in enumerate(PACKS.items()):
         for tap_count in (1, 2, 3):
             for variant, title in enumerate((first, second)):
                 stem = f"sb_{mode}_{tap_count}_{variant + 1}"
-                samples = render(mode, tap_count, variant, pitch, duration,
-                                 1801 + mode_index * 1000 + tap_count * 10 + variant)
+                source_ids = []
+                if mode == "dramaticMoans":
+                    title, samples, source_ids = human[tap_count, variant]
+                else:
+                    samples = render(mode, tap_count, variant, pitch, duration,
+                                     1801 + mode_index * 1000 + tap_count * 10 + variant)
                 pcm = b"".join(struct.pack("<h", round(max(-1, min(1, s)) * 32767)) for s in samples)
                 with wave.open(str(DEST / f"{stem}.wav"), "wb") as handle:
                     handle.setnchannels(1)
@@ -123,11 +128,13 @@ def main():
                     handle.writeframes(pcm)
                 entries.append({"id": stem, "mode": mode, "tapCount": tap_count,
                                 "title": title, "file": f"{stem}.wav",
-                                "duration": round(len(samples) / RATE, 3)})
-    manifest = {"version": 1, "provenance": "Original formant-synthesized character voices; not human recordings.",
-                "license": "CC0-1.0", "sampleRate": RATE, "clips": entries}
+                                "duration": round(len(samples) / RATE, 3),
+                                "kind": "recorded-human" if source_ids else "synthesized",
+                                "sourceIDs": source_ids})
+    manifest = {"version": 2, "provenance": "30 original synthesized characters and six CC0 human vocal edits.",
+                "license": "CC0-1.0", "sampleRate": RATE, "sources": sources, "clips": entries}
     (DEST / "sound_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-    print(f"Created {len(entries)} original synthesized vocal reactions in {DEST}")
+    print(f"Created {len(entries)} reactions: 30 synthesized and six human vocal edits in {DEST}")
 
 
 if __name__ == "__main__":

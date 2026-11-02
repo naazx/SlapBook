@@ -41,9 +41,9 @@ cause codesign to reject a bundle. Xcode’s normal default DerivedData path is 
 suitable. If a bundle fails signing with “resource fork, Finder information, or
 similar detritus,” clean the build folder or move DerivedData off Desktop.
 
-UI tests require a logged-in graphical macOS session and may require macOS approval
-for Xcode's test runner to control the app. The application itself does not require
-Accessibility or Input Monitoring permissions for its fixed shortcut.
+The shared SlapBook scheme runs unit tests only, including when you press **⌘U**.
+The UI test target is excluded from the default test action. The application
+itself needs no Accessibility or Input Monitoring permission for its shortcut.
 
 ## Input and hardware compatibility
 
@@ -88,16 +88,22 @@ read-only diagnostic (`swift Tools/hardware-probe.swift`).
 
 ## Sounds and custom packs
 
-Six built-in personalities contain **36 original synthesized character clips**:
+Six built-in personalities contain **36 reaction clips**:
 Shy, Anime, Drama Queen, Chaos, Dramatic Moans, and unlockable Secret Mode. Secret
-Mode is unlocked by clicking its card in Sound Library. These are stylized vowel,
-gasp, giggle, squeak and sigh effects, **not human recordings or licensed meme clips**.
-Dramatic Moans is a non-explicit theatrical aaah/oooh pack. Each mode includes
+Mode is unlocked by clicking its card in Sound Library. **Dramatic Moans contains
+six edits of real CC0 human recordings**: a long ah, a surprised oh, gasps and a
+sigh, arranged for single/double/triple inputs. The other 30 reactions are original
+synthesized vowel, giggle, squeak and cartoon effects. No licensed meme clips or
+celebrity voices are bundled. Each mode includes
 single, double and triple variants, a shuffle bag, optional pitch/rate variation,
 volume, and immediate mute. All clips are predecoded to PCM for responsive playback.
 
-The bundled audio is original DSP synthesis dedicated to **CC0-1.0**. Its deterministic
-standard-library Python generator, clip manifest, and license are committed. There
+All bundled audio is **CC0-1.0**. The five human source recordings, exact public
+preview URLs, authors, licenses and hashes are committed alongside the generator
+and clip manifest. Sound Credits in Settings lists the performers and links to
+their primary source pages. The human sources are compressed HQ MP3 previews,
+not original WAV masters. Regeneration uses Python’s standard library and macOS
+`afconvert`; the installed decoder may affect exact output samples. There
 are no remote asset dependencies and no silent substitutions if an asset is missing.
 See [audio provenance and implementation](docs/AUDIO.md). Regenerate with:
 
@@ -113,7 +119,8 @@ To use real human performances or other audio you have rights to use:
    Up to 100 files are stored. Corrupt/unsupported files produce visible errors.
 3. Imported files are copied into the app's Application Support directory; moving
    the source file afterward is safe. No persistent external file permissions are needed.
-4. Select the active pack, choose **Use Custom Mode**, and optionally assign each
+4. Select the active pack (remembered across launches), choose **Use Custom Mode**,
+   and optionally assign each
    file to Single, Double, Triple, or Any rhythm. A gesture without matching clips
    produces an error instead of playing an unrelated fallback.
 5. Use the test buttons to audition. The trash button removes that imported copy.
@@ -122,8 +129,9 @@ Settings, unlock state, counters and library metadata use UserDefaults. Audio is
 stored locally under `Application Support/SlapBookPro/CustomSounds` inside the app's
 sandbox container. Imports are never uploaded. Launch at Login uses `SMAppService`;
 install a signed build in `/Applications` before enabling it. macOS may require
-approval in System Settings → General → Login Items. The app displays actual status
-and registration errors rather than claiming success.
+approval in System Settings → General → Login Items. Pending registration remains
+cancelable, and a review button opens the relevant settings. Status refreshes when
+the app becomes active. Registration failures are shown explicitly.
 
 ## Architecture and verification
 
@@ -137,10 +145,10 @@ and registration errors rather than claiming success.
 
 Unit tests cover detector warm-up, gravity rejection, debounce, sensitivity,
 invalid data, sleep gaps, cooldown, settings persistence, audio integrity and imports.
-The UI test exercises Test Sound with detection disabled. Build/test results and
-remaining manual checks are recorded in [docs/VALIDATION.md](docs/VALIDATION.md).
-UI tests use a disposable preferences suite, so future test runs leave your app's
-settings, counters, and library metadata alone.
+Lifecycle and login-item tests use isolated services and notification centers.
+They do not sleep the computer or change real Login Items. Build/test results
+and remaining manual checks are recorded in [docs/VALIDATION.md](docs/VALIDATION.md).
+The default test scheme excludes UI automation.
 
 A locally signed Apple silicon build is packaged in `dist/SlapBook-Pro-macOS.zip`.
 Unzip it and open `SlapBook.app` to try the app immediately. This is a local developer

@@ -21,7 +21,7 @@ enum SoundMode: String, CaseIterable, Identifiable, Codable, Sendable {
         case .anime: "A season finale in every tap."
         case .drama: "An Oscar-worthy overreaction."
         case .chaos: "Absolutely no emotional stability."
-        case .dramaticMoans: "Theatrical aaahs, ooohs & sighs."
+        case .dramaticMoans: "Real voices. Theatrical ahs, ohs & sighs."
         case .secret: "Your Mac's extremely silly alter ego."
         case .custom: "Your sounds. Your questionable decisions."
         }

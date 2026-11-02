@@ -35,6 +35,7 @@ enum ReactionAudioError: LocalizedError {
     case emptyCustomPack
     case decodeFailed(String)
     case playbackUnavailable
+    case outputUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -43,12 +44,13 @@ enum ReactionAudioError: LocalizedError {
         case .emptyCustomPack: "This pack has no sounds matching this rhythm. Import audio or assign a matching Single, Double, Triple, or Any rhythm."
         case .decodeFailed(let file): "Could not decode \(file). Choose a valid WAV, AIFF, CAF, MP3, or M4A audio file."
         case .playbackUnavailable: "macOS could not load its audio playback components. Relaunch SlapBook Pro and check Sound settings."
+        case .outputUnavailable: "No audio output is available. Choose an output device in System Settings → Sound, then try again."
         }
     }
 }
 
-/// All playback is local. Built-ins are original synthesized character voices,
-/// explicitly identified in the app and the pack's provenance manifest.
+/// All playback is local. Built-ins combine original synthesized characters
+/// with credited CC0 human recordings, identified in the pack's manifest.
 @MainActor
 final class AudioEngine {
     private struct Manifest: Decodable {
@@ -120,6 +122,16 @@ final class AudioEngine {
             guard AudioComponentFindNext(nil, &description) != nil else {
                 throw ReactionAudioError.playbackUnavailable
             }
+        }
+        // An unavailable output can have a zero sample rate/channel count.
+        // Check before configuring or restarting: the SDK documents that trying
+        // to render through a disabled output may raise an Objective-C exception.
+        let outputFormat = engine.outputNode.outputFormat(forBus: 0)
+        guard outputFormat.sampleRate.isFinite, outputFormat.sampleRate > 0,
+              outputFormat.channelCount > 0 else {
+            throw ReactionAudioError.outputUnavailable
+        }
+        if !configured {
             engine.attach(player)
             engine.attach(pitch)
             do {
@@ -205,6 +217,14 @@ final class AudioEngine {
     }
 
     func stop() { if configured { player.stop() } }
+
+    /// Release the hardware while sleeping, retaining the graph and decoded
+    /// buffers. The next reaction restarts the engine through prepare().
+    func suspend() {
+        guard configured else { return }
+        player.stop()
+        engine.pause()
+    }
 
     /// Decode before accepting an import. A file extension alone is not proof
     /// that a file is valid audio. Imported files are copied by the library.

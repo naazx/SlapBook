@@ -35,7 +35,8 @@ struct SlapBookApp: App {
         MenuBarExtra {
             MenuBarView(model: model)
         } label: {
-            Label("SlapBook Pro", systemImage: model.settings.muted ? "laptopcomputer.slash" : "laptopcomputer")
+            Label("SlapBook Pro", systemImage: model.settings.muted ? "speaker.slash" : "laptopcomputer")
+                .accessibilityLabel("SlapBook Pro")
         }
         .menuBarExtraStyle(.window)
     }

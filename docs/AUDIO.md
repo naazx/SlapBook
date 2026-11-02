@@ -1,31 +1,47 @@
 # SlapBook Pro sound pack
 
-The bundled pack consists of **36 original synthesized character reactions**:
-six modes × single/double/triple patterns × two variants per pattern. These are
-expressive formant-synthesized effects, **not recordings of human performers**.
-The app should use that description wherever it introduces the stock pack.
-No commercial recordings, memes, Apple system-voice output, or voice clones are
-included. Secret Mode is original silliness rather than copyrighted meme audio.
+The bundled pack has **36 reactions**: 30 original synthesized character effects
+and **six edited CC0 human recordings** in Dramatic Moans. Every mode has
+single/double/triple patterns and two variants per pattern. The app labels the
+recorded and synthesized modes explicitly and provides a Sound Credits sheet.
+No celebrity clones, Apple system speech output, commercial film clips, or
+unlicensed meme recordings are included.
 
-`Dramatic Moans` contains non-explicit theatrical aaah and oooh vowels. Other
-packs include high squeaks, chopped giggles, rising exclamations, falling sighs,
-wobbles, and cartoon squawks. Double/triple inputs select independently rendered
-two/three-syllable reactions. Runtime pitch (±140 cents) and rate (0.96–1.04×)
-variation are optional. A shuffle bag avoids immediate repeats whenever the
-candidate pool contains at least two clips.
+Dramatic Moans includes a long theatrical ah, a short surprised oh, two gasps,
+and a sigh. Double/triple inputs select montages with two/three recorded reactions.
+Runtime pitch (±140 cents) and rate (0.96–1.04×) variation remain optional. A shuffle
+bag avoids immediate repeats when the candidate pool has at least two clips.
 
-Rebuild reproducibly from the repository root:
+| Human source | Author | License |
+| --- | --- | --- |
+| [Ah! sound female](https://freesound.org/people/marythewitch/sounds/536839/) | marythewitch | CC0 1.0 |
+| [Short Oh!](https://freesound.org/people/Airlane1979/sounds/798372/) | Airlane1979 | CC0 1.0 |
+| [gasp.wav](https://freesound.org/people/iokera/sounds/414213/) | iokera | CC0 1.0 |
+| [gasp HOH!.wav](https://freesound.org/people/Reitanna/sounds/242606/) | Reitanna | CC0 1.0 |
+| [sigh](https://freesound.org/people/wjtaylor/sounds/265249/) | wjtaylor | CC0 1.0 |
+
+The committed source files are the public HQ MP3 previews embedded on those
+primary pages. These are compressed previews, not the original WAV masters;
+resampling them to PCM does not restore information lost to compression. Exact
+URLs, author names, licenses, byte sizes and SHA-256 hashes are recorded in
+`Tools/AudioSources/sources.json` and the bundled sound manifest. All five source
+pages and public preview links were verified on 2 November 2026. No authentication,
+API key, or login bypass was used. CC0 permits these edits and redistribution.
+
+Rebuild offline on macOS from the repository root:
 
 ```sh
 python3 Tools/generate_sound_pack.py
 ```
 
-The generator uses only Python's standard library and a deterministic random
-seed. It synthesizes a glottal oscillator, breath noise, broad vowel resonators,
-pitch contours, attack/release fades, and soft saturation. Output is mono,
-44.1 kHz, 16-bit PCM WAV. Each clip peaks at approximately −2.4 dBFS. No network
-service or download is involved. `sound_manifest.json` lists every clip and
-duration; `AUDIO_LICENSE.txt` dedicates the audio to CC0-1.0.
+The standard-library Python generator uses a fixed random seed for the 30
+synthesized effects. It uses macOS `afconvert` to decode the committed MP3s, then
+trims silence, adds short fades, normalizes and arranges the human performances.
+The installed system decoder can affect exact decoded samples. Output is mono,
+44.1 kHz, 16-bit PCM WAV, peaking around −2.4 dBFS. Source hashes are checked before
+rendering; missing or altered sources fail explicitly. No network access is needed
+to rebuild. `AUDIO_LICENSE.txt` contains the credits and CC0 dedication, while each
+manifest clip identifies whether it is synthesized or recorded and lists its sources.
 
 `AudioEngine` predecodes the stock pack to PCM, prepares and starts an
 `AVAudioEngine`, then schedules buffers through an `AVAudioPlayerNode` and
@@ -45,7 +61,10 @@ Custom decoded PCM uses a 32 MiB least-recently-used cache, independent of the
 number of imported files. Prewarming stops at that limit. Conversion reads at
 most 8,192 native frames per input chunk, so a high-sample-rate multichannel
 import does not allocate its entire uncompressed source. Stock PCM remains
-preloaded (about 9 MiB) for immediate built-in playback.
+preloaded for responsive built-in playback.
+
+When sleeping, playback stops and the prepared engine pauses. The next reaction
+restarts it. An unavailable hardware output produces an explicit error.
 
 Use the app's **Test Sound** with single, double, and triple selection to test
 every reaction independently of any sensor or keyboard detection. Muting stops

@@ -4,6 +4,38 @@ import Observation
 import ServiceManagement
 import UniformTypeIdentifiers
 
+@MainActor
+protocol ReactionAudioService: AnyObject {
+    func prepare() throws
+    func play(mode: SoundMode, tapCount: Int, volume: Double, pitchVariation: Bool, customURLs: [URL]) throws -> String
+    func setOutput(volume: Double, muted: Bool)
+    func stop()
+    func suspend()
+    func validate(url: URL) throws
+    func preloadCustom(urls: [URL]) throws
+    func clearCustomCache()
+}
+
+@MainActor
+protocol MotionInputService: AnyObject {
+    var onSample: ((Double, Double, Double) -> Void)? { get set }
+    var onStatus: ((String, Bool) -> Void)? { get set }
+    func start()
+    func stop()
+}
+
+@MainActor
+protocol ShortcutInputService: AnyObject {
+    var onTrigger: (() -> Void)? { get set }
+    var status: String { get }
+    func start()
+    func stop()
+}
+
+extension AudioEngine: ReactionAudioService { }
+extension ExperimentalMotionInput: MotionInputService { }
+extension GlobalShortcut: ShortcutInputService { }
+
 @Observable @MainActor
 final class AppModel {
     var settings: SettingsStore
@@ -20,13 +52,21 @@ final class AppModel {
     var statusMessage: String?
     var customSounds: [CustomSound] = []
     var customPackName = "My Sound Pack"
-    var selectedCustomPack = "All sounds"
+    var selectedCustomPack = "All sounds" {
+        didSet {
+            guard libraryIsReady, selectedCustomPack != oldValue else { return }
+            defaults.set(selectedCustomPack, forKey: "selectedCustomPack")
+            warmSelectedPack()
+        }
+    }
     var launchAtLogin = false
+    var loginNeedsApproval = false
     var loginStatus = ""
 
-    @ObservationIgnored private let audio = AudioEngine()
-    @ObservationIgnored private let motion = ExperimentalMotionInput()
-    @ObservationIgnored private let shortcut = GlobalShortcut()
+    @ObservationIgnored private let audio: any ReactionAudioService
+    @ObservationIgnored private let motion: any MotionInputService
+    @ObservationIgnored private let shortcut: any ShortcutInputService
+    @ObservationIgnored private let loginItem: any LoginItemService
     @ObservationIgnored private var detector = TapDetector()
     @ObservationIgnored private var gate = ReactionGate()
     @ObservationIgnored private var groupTask: Task<Void, Never>?
@@ -36,13 +76,30 @@ final class AppModel {
     @ObservationIgnored private var currentGroupingEnabled = false
     @ObservationIgnored private var lastManualInput: TimeInterval = -.infinity
     @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private let workspaceCenter: NotificationCenter
+    @ObservationIgnored private let applicationCenter: NotificationCenter
     @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
+    @ObservationIgnored private var applicationObserver: NSObjectProtocol?
     @ObservationIgnored private var sleeping = false
+    @ObservationIgnored private var isShutdown = false
+    @ObservationIgnored private var libraryIsReady = false
 
-    var customPacks: [String] { ["All sounds"] + Set(customSounds.map(\.pack)).sorted() }
+    var customPacks: [String] { ["All sounds"] + Set(customSounds.map(\.pack)).filter { $0 != "All sounds" }.sorted() }
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard,
+         workspaceCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
+         applicationCenter: NotificationCenter = .default,
+         audio: any ReactionAudioService = AudioEngine(),
+         motion: any MotionInputService = ExperimentalMotionInput(),
+         shortcut: any ShortcutInputService = GlobalShortcut(),
+         loginItem: any LoginItemService = SystemLoginItemService()) {
         self.defaults = defaults
+        self.workspaceCenter = workspaceCenter
+        self.applicationCenter = applicationCenter
+        self.audio = audio
+        self.motion = motion
+        self.shortcut = shortcut
+        self.loginItem = loginItem
         settings = SettingsStore(defaults: defaults)
         hardware = HardwareProbe.inspect()
         tapCount = defaults.integer(forKey: "tapCount")
@@ -58,8 +115,12 @@ final class AppModel {
         if settings.mode == .secret && !secretUnlocked { settings.mode = .dramaticMoans }
         do { try audio.prepare() }
         catch { statusMessage = error.localizedDescription }
+        let restoredPack = defaults.string(forKey: "selectedCustomPack") ?? "All sounds"
+        selectedCustomPack = customPacks.contains(restoredPack) ? restoredPack : "All sounds"
+        libraryIsReady = true
+        warmSelectedPack()
         motion.onSample = { [weak self] x, y, z in
-            guard let self, self.settings.detectionEnabled else { return }
+            guard let self, self.settings.detectionEnabled, !self.sleeping, !self.isShutdown else { return }
             let now = ProcessInfo.processInfo.systemUptime
             if self.detector.process(x: x, y: y, z: z, at: now, sensitivity: self.settings.sensitivity) {
                 self.receiveInput(source: "Experimental chassis motion · location unknown")
@@ -71,21 +132,23 @@ final class AppModel {
         }
         shortcut.onTrigger = { [weak self] in self?.triggerManualTap(source: "Global shortcut ⌥⌘S") }
         settings.onChange = { [weak self] in self?.settingsChanged() }
-        updateLoginStatus()
-        observeSleep()
+        refreshLoginStatus()
+        observeLifecycle()
         settingsChanged()
     }
 
     func refreshHardware() {
+        guard !isShutdown else { return }
         hardware = HardwareProbe.inspect()
-        if currentMotionEnabled { motion.stop(); detector.reset(); motion.start() }
-        updateLoginStatus()
+        if currentMotionEnabled && !sleeping { motion.stop(); detector.reset(); motion.start() }
+        refreshLoginStatus()
     }
 
     private func settingsChanged() {
+        guard !isShutdown else { return }
         audio.setOutput(volume: settings.volume, muted: settings.muted)
-        if !settings.detectionEnabled || currentGroupingEnabled != settings.multiTapEnabled {
-            groupTask?.cancel(); groupTask = nil; groupCount = 0
+        if !settings.detectionEnabled || sleeping || currentGroupingEnabled != settings.multiTapEnabled {
+            cancelPendingGroup()
         }
         currentGroupingEnabled = settings.multiTapEnabled
         if settings.mode == .secret && !secretUnlocked { settings.mode = .dramaticMoans; return }
@@ -104,7 +167,7 @@ final class AppModel {
     }
 
     func triggerManualTap(source: String = "On-screen tap button") {
-        guard settings.detectionEnabled else { return }
+        guard settings.detectionEnabled, !sleeping, !isShutdown else { return }
         let now = ProcessInfo.processInfo.systemUptime
         guard now - lastManualInput >= 0.12 else { return }
         lastManualInput = now
@@ -112,6 +175,7 @@ final class AppModel {
     }
 
     private func receiveInput(source: String) {
+        guard settings.detectionEnabled, !sleeping, !isShutdown else { return }
         tapCount += 1
         defaults.set(tapCount, forKey: "tapCount")
         lastInput = source
@@ -130,7 +194,7 @@ final class AppModel {
         groupTask?.cancel(); groupTask = nil
         let count = groupCount
         groupCount = 0
-        guard settings.detectionEnabled, count > 0 else { return }
+        guard settings.detectionEnabled, !sleeping, !isShutdown, count > 0 else { return }
         react(taps: count, isTest: false)
     }
 
@@ -138,6 +202,7 @@ final class AppModel {
     func testSound(tapCount: Int = 1) { react(taps: min(3, max(1, tapCount)), isTest: true) }
 
     private func react(taps: Int, isTest: Bool) {
+        guard !sleeping, !isShutdown else { return }
         guard !settings.muted, settings.volume > 0 else {
             if isTest { statusMessage = "Sound is muted or volume is zero. Raise the volume to hear your Mac's feelings." }
             return
@@ -165,6 +230,12 @@ final class AppModel {
     func stopPlayback() { audio.stop() }
 
     func importSounds() {
+        let trimmed = customPackName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pack = String((trimmed.isEmpty ? "My Sound Pack" : trimmed).prefix(64))
+        guard pack.caseInsensitiveCompare("All sounds") != .orderedSame else {
+            statusMessage = "Choose a different pack name. “All sounds” is reserved for the combined library."
+            return
+        }
         let panel = NSOpenPanel()
         panel.title = "Give your Mac a new vocabulary"
         panel.message = "Import audio you own or have permission to use. Up to 30 seconds / 25 MB each. Files are copied into the app's library."
@@ -172,8 +243,6 @@ final class AppModel {
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
         guard panel.runModal() == .OK else { return }
-        let trimmed = customPackName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let pack = String((trimmed.isEmpty ? "My Sound Pack" : trimmed).prefix(64))
         var errors: [String] = []
         var imported = 0
         do { try FileManager.default.createDirectory(at: CustomSound.directory, withIntermediateDirectories: true) }
@@ -199,8 +268,12 @@ final class AppModel {
             }
         }
         persistLibrary()
-        if imported > 0 { selectedCustomPack = pack; settings.mode = .custom }
         statusMessage = errors.isEmpty ? "Imported \(imported) sound\(imported == 1 ? "" : "s") into \(pack)." : errors.joined(separator: "\n")
+        if imported > 0 {
+            if selectedCustomPack == pack { warmSelectedPack() }
+            else { selectedCustomPack = pack }
+            settings.mode = .custom
+        }
     }
 
     func setSoundTapCount(_ sound: CustomSound, count: Int) {
@@ -215,6 +288,7 @@ final class AppModel {
             customSounds.removeAll { $0.id == sound.id }
             audio.clearCustomCache()
             if !customPacks.contains(selectedCustomPack) { selectedCustomPack = "All sounds" }
+            else { warmSelectedPack() }
             persistLibrary()
         } catch { statusMessage = "Could not remove sound: \(error.localizedDescription)" }
     }
@@ -222,6 +296,13 @@ final class AppModel {
     private func persistLibrary() {
         do { defaults.set(try JSONEncoder().encode(customSounds), forKey: "customSounds") }
         catch { statusMessage = "Could not save sound library: \(error.localizedDescription)" }
+    }
+
+    private func warmSelectedPack() {
+        guard libraryIsReady, !isShutdown else { return }
+        let urls = customSounds.filter { selectedCustomPack == "All sounds" || $0.pack == selectedCustomPack }.map(\.url)
+        do { try audio.preloadCustom(urls: urls) }
+        catch { statusMessage = "Could not prepare custom sounds: \(error.localizedDescription)" }
     }
 
     func unlockSecret() {
@@ -238,48 +319,91 @@ final class AppModel {
     }
 
     func setLaunchAtLogin(_ enabled: Bool) {
+        guard !isShutdown else { return }
         do {
-            if enabled { try SMAppService.mainApp.register() }
-            else { try SMAppService.mainApp.unregister() }
+            let status = loginItem.status
+            if enabled, status != .enabled, status != .requiresApproval { try loginItem.register() }
+            else if !enabled, status == .enabled || status == .requiresApproval { try loginItem.unregister() }
+            if statusMessage?.hasPrefix("Launch at Login:") == true { statusMessage = nil }
         } catch { statusMessage = "Launch at Login: \(error.localizedDescription)" }
-        updateLoginStatus()
+        refreshLoginStatus()
     }
 
-    private func updateLoginStatus() {
-        let status = SMAppService.mainApp.status
-        launchAtLogin = status == .enabled
+    func refreshLoginStatus() {
+        guard !isShutdown else { return }
+        let status = loginItem.status
+        // Pending approval is a registered request, so the user can turn it off.
+        launchAtLogin = status == .enabled || status == .requiresApproval
+        loginNeedsApproval = status == .requiresApproval
         switch status {
         case .enabled: loginStatus = "Enabled in macOS Login Items."
-        case .requiresApproval: loginStatus = "Approve SlapBook Pro in System Settings → General → Login Items."
+        case .requiresApproval: loginStatus = "Awaiting approval in System Settings → General → Login Items. It will not launch at login until approved."
         case .notRegistered: loginStatus = "Off. Install the app in Applications before enabling."
-        case .notFound: loginStatus = "Install a signed app in Applications to use Launch at Login."
+        case .notFound: loginStatus = "macOS could not locate this login item. Install a signed app in Applications to use Launch at Login."
         @unknown default: loginStatus = "Login item status is unavailable."
         }
     }
 
-    private func observeSleep() {
-        let center = NSWorkspace.shared.notificationCenter
-        workspaceObservers.append(center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                self.sleeping = true
-                self.groupTask?.cancel(); self.groupCount = 0
-                self.audio.stop(); self.settingsChanged()
-            }
+    func openLoginItemSettings() {
+        guard !isShutdown else { return }
+        loginItem.openSettings()
+    }
+
+    private func cancelPendingGroup() {
+        groupTask?.cancel()
+        groupTask = nil
+        groupCount = 0
+    }
+
+    private func suspendForSleep() {
+        guard !isShutdown, !sleeping else { return }
+        let hadMotion = currentMotionEnabled
+        sleeping = true
+        cancelPendingGroup()
+        audio.suspend()
+        settingsChanged()
+        if hadMotion { motionStatus = "Sensor paused while this Mac sleeps." }
+    }
+
+    private func resumeAfterWake() {
+        guard !isShutdown, sleeping else { return }
+        sleeping = false
+        lastManualInput = -.infinity
+        detector.reset()
+        gate.reset()
+        hardware = HardwareProbe.inspect()
+        refreshLoginStatus()
+        settingsChanged()
+    }
+
+    private func observeLifecycle() {
+        workspaceObservers.append(workspaceCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.suspendForSleep() }
         })
-        workspaceObservers.append(center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                self.sleeping = false
-                self.gate.reset(); self.settingsChanged(); self.refreshHardware()
-            }
+        workspaceObservers.append(workspaceCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.resumeAfterWake() }
         })
+        applicationObserver = applicationCenter.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshLoginStatus() }
+        }
     }
 
     func shutdown() {
-        groupTask?.cancel()
+        guard !isShutdown else { return }
+        isShutdown = true
+        cancelPendingGroup()
+        settings.onChange = nil
         motion.stop(); shortcut.stop(); audio.stop()
-        workspaceObservers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }
+        currentMotionEnabled = false
+        currentShortcutEnabled = false
+        motionStreaming = false
+        shortcutStatus = shortcut.status
+        motion.onSample = nil
+        motion.onStatus = nil
+        shortcut.onTrigger = nil
+        workspaceObservers.forEach { workspaceCenter.removeObserver($0) }
         workspaceObservers.removeAll()
+        if let applicationObserver { applicationCenter.removeObserver(applicationObserver) }
+        applicationObserver = nil
     }
 }
