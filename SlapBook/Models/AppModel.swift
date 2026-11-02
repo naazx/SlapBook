@@ -4,6 +4,38 @@ import Observation
 import ServiceManagement
 import UniformTypeIdentifiers
 
+@MainActor
+protocol ReactionAudioService: AnyObject {
+    func prepare() throws
+    func play(mode: SoundMode, tapCount: Int, volume: Double, pitchVariation: Bool, customURLs: [URL]) throws -> String
+    func setOutput(volume: Double, muted: Bool)
+    func stop()
+    func suspend()
+    func validate(url: URL) throws
+    func preloadCustom(urls: [URL]) throws
+    func clearCustomCache()
+}
+
+@MainActor
+protocol MotionInputService: AnyObject {
+    var onSample: ((Double, Double, Double) -> Void)? { get set }
+    var onStatus: ((String, Bool) -> Void)? { get set }
+    func start()
+    func stop()
+}
+
+@MainActor
+protocol ShortcutInputService: AnyObject {
+    var onTrigger: (() -> Void)? { get set }
+    var status: String { get }
+    func start()
+    func stop()
+}
+
+extension AudioEngine: ReactionAudioService { }
+extension ExperimentalMotionInput: MotionInputService { }
+extension GlobalShortcut: ShortcutInputService { }
+
 @Observable @MainActor
 final class AppModel {
     var settings: SettingsStore
@@ -24,9 +56,9 @@ final class AppModel {
     var launchAtLogin = false
     var loginStatus = ""
 
-    @ObservationIgnored private let audio = AudioEngine()
-    @ObservationIgnored private let motion = ExperimentalMotionInput()
-    @ObservationIgnored private let shortcut = GlobalShortcut()
+    @ObservationIgnored private let audio: any ReactionAudioService
+    @ObservationIgnored private let motion: any MotionInputService
+    @ObservationIgnored private let shortcut: any ShortcutInputService
     @ObservationIgnored private var detector = TapDetector()
     @ObservationIgnored private var gate = ReactionGate()
     @ObservationIgnored private var groupTask: Task<Void, Never>?
@@ -36,13 +68,27 @@ final class AppModel {
     @ObservationIgnored private var currentGroupingEnabled = false
     @ObservationIgnored private var lastManualInput: TimeInterval = -.infinity
     @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private let workspaceCenter: NotificationCenter
+    @ObservationIgnored private let applicationCenter: NotificationCenter
     @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
+    @ObservationIgnored private var applicationObserver: NSObjectProtocol?
     @ObservationIgnored private var sleeping = false
+    @ObservationIgnored private var isShutdown = false
 
     var customPacks: [String] { ["All sounds"] + Set(customSounds.map(\.pack)).sorted() }
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard,
+         workspaceCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
+         applicationCenter: NotificationCenter = .default,
+         audio: any ReactionAudioService = AudioEngine(),
+         motion: any MotionInputService = ExperimentalMotionInput(),
+         shortcut: any ShortcutInputService = GlobalShortcut()) {
         self.defaults = defaults
+        self.workspaceCenter = workspaceCenter
+        self.applicationCenter = applicationCenter
+        self.audio = audio
+        self.motion = motion
+        self.shortcut = shortcut
         settings = SettingsStore(defaults: defaults)
         hardware = HardwareProbe.inspect()
         tapCount = defaults.integer(forKey: "tapCount")
@@ -59,7 +105,7 @@ final class AppModel {
         do { try audio.prepare() }
         catch { statusMessage = error.localizedDescription }
         motion.onSample = { [weak self] x, y, z in
-            guard let self, self.settings.detectionEnabled else { return }
+            guard let self, self.settings.detectionEnabled, !self.sleeping, !self.isShutdown else { return }
             let now = ProcessInfo.processInfo.systemUptime
             if self.detector.process(x: x, y: y, z: z, at: now, sensitivity: self.settings.sensitivity) {
                 self.receiveInput(source: "Experimental chassis motion · location unknown")
@@ -72,20 +118,22 @@ final class AppModel {
         shortcut.onTrigger = { [weak self] in self?.triggerManualTap(source: "Global shortcut ⌥⌘S") }
         settings.onChange = { [weak self] in self?.settingsChanged() }
         updateLoginStatus()
-        observeSleep()
+        observeLifecycle()
         settingsChanged()
     }
 
     func refreshHardware() {
+        guard !isShutdown else { return }
         hardware = HardwareProbe.inspect()
-        if currentMotionEnabled { motion.stop(); detector.reset(); motion.start() }
+        if currentMotionEnabled && !sleeping { motion.stop(); detector.reset(); motion.start() }
         updateLoginStatus()
     }
 
     private func settingsChanged() {
+        guard !isShutdown else { return }
         audio.setOutput(volume: settings.volume, muted: settings.muted)
-        if !settings.detectionEnabled || currentGroupingEnabled != settings.multiTapEnabled {
-            groupTask?.cancel(); groupTask = nil; groupCount = 0
+        if !settings.detectionEnabled || sleeping || currentGroupingEnabled != settings.multiTapEnabled {
+            cancelPendingGroup()
         }
         currentGroupingEnabled = settings.multiTapEnabled
         if settings.mode == .secret && !secretUnlocked { settings.mode = .dramaticMoans; return }
@@ -104,7 +152,7 @@ final class AppModel {
     }
 
     func triggerManualTap(source: String = "On-screen tap button") {
-        guard settings.detectionEnabled else { return }
+        guard settings.detectionEnabled, !sleeping, !isShutdown else { return }
         let now = ProcessInfo.processInfo.systemUptime
         guard now - lastManualInput >= 0.12 else { return }
         lastManualInput = now
@@ -112,6 +160,7 @@ final class AppModel {
     }
 
     private func receiveInput(source: String) {
+        guard settings.detectionEnabled, !sleeping, !isShutdown else { return }
         tapCount += 1
         defaults.set(tapCount, forKey: "tapCount")
         lastInput = source
@@ -130,7 +179,7 @@ final class AppModel {
         groupTask?.cancel(); groupTask = nil
         let count = groupCount
         groupCount = 0
-        guard settings.detectionEnabled, count > 0 else { return }
+        guard settings.detectionEnabled, !sleeping, !isShutdown, count > 0 else { return }
         react(taps: count, isTest: false)
     }
 
@@ -138,6 +187,7 @@ final class AppModel {
     func testSound(tapCount: Int = 1) { react(taps: min(3, max(1, tapCount)), isTest: true) }
 
     private func react(taps: Int, isTest: Bool) {
+        guard !sleeping, !isShutdown else { return }
         guard !settings.muted, settings.volume > 0 else {
             if isTest { statusMessage = "Sound is muted or volume is zero. Raise the volume to hear your Mac's feelings." }
             return
@@ -238,6 +288,7 @@ final class AppModel {
     }
 
     func setLaunchAtLogin(_ enabled: Bool) {
+        guard !isShutdown else { return }
         do {
             if enabled { try SMAppService.mainApp.register() }
             else { try SMAppService.mainApp.unregister() }
@@ -257,29 +308,61 @@ final class AppModel {
         }
     }
 
-    private func observeSleep() {
-        let center = NSWorkspace.shared.notificationCenter
-        workspaceObservers.append(center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                self.sleeping = true
-                self.groupTask?.cancel(); self.groupCount = 0
-                self.audio.stop(); self.settingsChanged()
-            }
+    private func cancelPendingGroup() {
+        groupTask?.cancel()
+        groupTask = nil
+        groupCount = 0
+    }
+
+    private func suspendForSleep() {
+        guard !isShutdown, !sleeping else { return }
+        let hadMotion = currentMotionEnabled
+        sleeping = true
+        cancelPendingGroup()
+        audio.suspend()
+        settingsChanged()
+        if hadMotion { motionStatus = "Sensor paused while this Mac sleeps." }
+    }
+
+    private func resumeAfterWake() {
+        guard !isShutdown, sleeping else { return }
+        sleeping = false
+        lastManualInput = -.infinity
+        detector.reset()
+        gate.reset()
+        hardware = HardwareProbe.inspect()
+        updateLoginStatus()
+        settingsChanged()
+    }
+
+    private func observeLifecycle() {
+        workspaceObservers.append(workspaceCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.suspendForSleep() }
         })
-        workspaceObservers.append(center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                self.sleeping = false
-                self.gate.reset(); self.settingsChanged(); self.refreshHardware()
-            }
+        workspaceObservers.append(workspaceCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.resumeAfterWake() }
         })
+        applicationObserver = applicationCenter.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateLoginStatus() }
+        }
     }
 
     func shutdown() {
-        groupTask?.cancel()
+        guard !isShutdown else { return }
+        isShutdown = true
+        cancelPendingGroup()
+        settings.onChange = nil
         motion.stop(); shortcut.stop(); audio.stop()
-        workspaceObservers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }
+        currentMotionEnabled = false
+        currentShortcutEnabled = false
+        motionStreaming = false
+        shortcutStatus = shortcut.status
+        motion.onSample = nil
+        motion.onStatus = nil
+        shortcut.onTrigger = nil
+        workspaceObservers.forEach { workspaceCenter.removeObserver($0) }
         workspaceObservers.removeAll()
+        if let applicationObserver { applicationCenter.removeObserver(applicationObserver) }
+        applicationObserver = nil
     }
 }

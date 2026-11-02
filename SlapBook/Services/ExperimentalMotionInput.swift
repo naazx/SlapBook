@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 import IOKit
 import IOKit.hid
@@ -13,34 +12,13 @@ final class ExperimentalMotionInput {
     private var device: IOHIDDevice?
     private var buffer: UnsafeMutablePointer<UInt8>?
     private var watchdog: Task<Void, Never>?
-    private var observers: [NSObjectProtocol] = []
     private var requested = false
     private var validReports = 0
     private var lastReport: TimeInterval = 0
     private var streaming = false
 
-    init() {
-        let center = NSWorkspace.shared.notificationCenter
-        observers.append(center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self, self.requested else { return }
-                self.closeSession()
-                self.onStatus?("Sensor paused while this Mac sleeps.", false)
-            }
-        })
-        observers.append(center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self, self.requested else { return }
-                self.start()
-            }
-        })
-    }
-
-    isolated deinit {
-        closeSession()
-        let center = NSWorkspace.shared.notificationCenter
-        observers.forEach { center.removeObserver($0) }
-    }
+    // AppModel owns sleep/wake transitions so the sensor is restarted once.
+    isolated deinit { closeSession() }
 
     func start() {
         closeSession()
