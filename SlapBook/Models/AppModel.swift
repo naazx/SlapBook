@@ -54,11 +54,13 @@ final class AppModel {
     var customPackName = "My Sound Pack"
     var selectedCustomPack = "All sounds"
     var launchAtLogin = false
+    var loginNeedsApproval = false
     var loginStatus = ""
 
     @ObservationIgnored private let audio: any ReactionAudioService
     @ObservationIgnored private let motion: any MotionInputService
     @ObservationIgnored private let shortcut: any ShortcutInputService
+    @ObservationIgnored private let loginItem: any LoginItemService
     @ObservationIgnored private var detector = TapDetector()
     @ObservationIgnored private var gate = ReactionGate()
     @ObservationIgnored private var groupTask: Task<Void, Never>?
@@ -82,13 +84,15 @@ final class AppModel {
          applicationCenter: NotificationCenter = .default,
          audio: any ReactionAudioService = AudioEngine(),
          motion: any MotionInputService = ExperimentalMotionInput(),
-         shortcut: any ShortcutInputService = GlobalShortcut()) {
+         shortcut: any ShortcutInputService = GlobalShortcut(),
+         loginItem: any LoginItemService = SystemLoginItemService()) {
         self.defaults = defaults
         self.workspaceCenter = workspaceCenter
         self.applicationCenter = applicationCenter
         self.audio = audio
         self.motion = motion
         self.shortcut = shortcut
+        self.loginItem = loginItem
         settings = SettingsStore(defaults: defaults)
         hardware = HardwareProbe.inspect()
         tapCount = defaults.integer(forKey: "tapCount")
@@ -117,7 +121,7 @@ final class AppModel {
         }
         shortcut.onTrigger = { [weak self] in self?.triggerManualTap(source: "Global shortcut ⌥⌘S") }
         settings.onChange = { [weak self] in self?.settingsChanged() }
-        updateLoginStatus()
+        refreshLoginStatus()
         observeLifecycle()
         settingsChanged()
     }
@@ -126,7 +130,7 @@ final class AppModel {
         guard !isShutdown else { return }
         hardware = HardwareProbe.inspect()
         if currentMotionEnabled && !sleeping { motion.stop(); detector.reset(); motion.start() }
-        updateLoginStatus()
+        refreshLoginStatus()
     }
 
     private func settingsChanged() {
@@ -290,22 +294,32 @@ final class AppModel {
     func setLaunchAtLogin(_ enabled: Bool) {
         guard !isShutdown else { return }
         do {
-            if enabled { try SMAppService.mainApp.register() }
-            else { try SMAppService.mainApp.unregister() }
+            let status = loginItem.status
+            if enabled, status != .enabled, status != .requiresApproval { try loginItem.register() }
+            else if !enabled, status == .enabled || status == .requiresApproval { try loginItem.unregister() }
+            if statusMessage?.hasPrefix("Launch at Login:") == true { statusMessage = nil }
         } catch { statusMessage = "Launch at Login: \(error.localizedDescription)" }
-        updateLoginStatus()
+        refreshLoginStatus()
     }
 
-    private func updateLoginStatus() {
-        let status = SMAppService.mainApp.status
-        launchAtLogin = status == .enabled
+    func refreshLoginStatus() {
+        guard !isShutdown else { return }
+        let status = loginItem.status
+        // Pending approval is a registered request, so the user can turn it off.
+        launchAtLogin = status == .enabled || status == .requiresApproval
+        loginNeedsApproval = status == .requiresApproval
         switch status {
         case .enabled: loginStatus = "Enabled in macOS Login Items."
-        case .requiresApproval: loginStatus = "Approve SlapBook Pro in System Settings → General → Login Items."
+        case .requiresApproval: loginStatus = "Awaiting approval in System Settings → General → Login Items. It will not launch at login until approved."
         case .notRegistered: loginStatus = "Off. Install the app in Applications before enabling."
-        case .notFound: loginStatus = "Install a signed app in Applications to use Launch at Login."
+        case .notFound: loginStatus = "macOS could not locate this login item. Install a signed app in Applications to use Launch at Login."
         @unknown default: loginStatus = "Login item status is unavailable."
         }
+    }
+
+    func openLoginItemSettings() {
+        guard !isShutdown else { return }
+        loginItem.openSettings()
     }
 
     private func cancelPendingGroup() {
@@ -331,7 +345,7 @@ final class AppModel {
         detector.reset()
         gate.reset()
         hardware = HardwareProbe.inspect()
-        updateLoginStatus()
+        refreshLoginStatus()
         settingsChanged()
     }
 
@@ -343,7 +357,7 @@ final class AppModel {
             MainActor.assumeIsolated { self?.resumeAfterWake() }
         })
         applicationObserver = applicationCenter.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.updateLoginStatus() }
+            MainActor.assumeIsolated { self?.refreshLoginStatus() }
         }
     }
 

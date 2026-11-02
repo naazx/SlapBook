@@ -76,6 +76,38 @@ struct LifecycleTests {
         #expect(fixture.shortcut.starts == starts)
         #expect(fixture.audio.played == [1, 1])
         #expect(fixture.model.tapCount == 2)
+        #expect(fixture.login.registrations == 0)
+    }
+
+    @Test func pendingLoginApprovalCanBeCanceledWithoutRegisteringAgain() throws {
+        let fixture = try Fixture(loginStatus: .requiresApproval)
+        defer { fixture.cleanup() }
+        #expect(fixture.model.launchAtLogin)
+        #expect(fixture.model.loginNeedsApproval)
+        #expect(fixture.model.loginStatus.contains("will not launch"))
+        fixture.model.setLaunchAtLogin(true)
+        #expect(fixture.login.registrations == 0)
+        fixture.model.setLaunchAtLogin(false)
+        #expect(fixture.login.unregistrations == 1)
+        #expect(!fixture.model.launchAtLogin)
+        #expect(!fixture.model.loginNeedsApproval)
+    }
+
+    @Test func activationRefreshesLoginStateAndRegistrationErrorsAreVisible() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+        fixture.login.status = .enabled
+        fixture.application.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+        #expect(fixture.model.launchAtLogin)
+        fixture.login.status = .notRegistered
+        fixture.application.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+        #expect(!fixture.model.launchAtLogin)
+        fixture.login.registrationError = TestError.denied
+        fixture.model.setLaunchAtLogin(true)
+        #expect(fixture.model.statusMessage?.contains("Test registration denied") == true)
+        #expect(!fixture.model.launchAtLogin)
+        fixture.model.openLoginItemSettings()
+        #expect(fixture.login.settingsOpens == 1)
     }
 
 }
@@ -89,16 +121,18 @@ private final class Fixture {
     let audio = FakeAudio()
     let motion = FakeMotion()
     let shortcut = FakeShortcut()
+    let login = FakeLogin()
     let model: AppModel
 
-    init(grouped: Bool = false, motionEnabled: Bool = false) throws {
+    init(grouped: Bool = false, motionEnabled: Bool = false, loginStatus: SMAppService.Status = .notRegistered) throws {
         defaults = try #require(UserDefaults(suiteName: name))
         defaults.set(true, forKey: "detectionEnabled")
         defaults.set(true, forKey: "shortcutEnabled")
         defaults.set(motionEnabled, forKey: "experimentalMotionEnabled")
         defaults.set(grouped, forKey: "multiTapEnabled")
+        login.status = loginStatus
         model = AppModel(defaults: defaults, workspaceCenter: workspace, applicationCenter: application,
-                         audio: audio, motion: motion, shortcut: shortcut)
+                         audio: audio, motion: motion, shortcut: shortcut, loginItem: login)
     }
 
     func cleanup() {
@@ -143,4 +177,25 @@ private final class FakeShortcut: ShortcutInputService {
     var stops = 0
     func start() { starts += 1; status = "Test shortcut ready" }
     func stop() { stops += 1; status = "Shortcut is off" }
+}
+
+@MainActor
+private final class FakeLogin: LoginItemService {
+    var status: SMAppService.Status = .notRegistered
+    var registrations = 0
+    var unregistrations = 0
+    var settingsOpens = 0
+    var registrationError: (any Error)?
+    func register() throws {
+        registrations += 1
+        if let registrationError { throw registrationError }
+        status = .enabled
+    }
+    func unregister() throws { unregistrations += 1; status = .notRegistered }
+    func openSettings() { settingsOpens += 1 }
+}
+
+private enum TestError: LocalizedError {
+    case denied
+    var errorDescription: String? { "Test registration denied" }
 }

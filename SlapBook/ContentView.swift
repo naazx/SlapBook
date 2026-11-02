@@ -315,7 +315,11 @@ struct ContentView: View {
             }
             card(title: "At home in your menu bar", symbol: "menubar.rectangle") {
                 Toggle("Launch at Login", isOn: Binding(get: { model.launchAtLogin }, set: model.setLaunchAtLogin))
+                    .accessibilityIdentifier("launchAtLoginToggle")
                 Text(model.loginStatus).font(.system(size: 11)).foregroundStyle(.secondary)
+                if model.loginNeedsApproval {
+                    Button("Review in System Settings…", action: model.openLoginItemSettings)
+                }
                 Text("Close this window to keep SlapBook in your menu bar. Quit from the menu bar when your Mac needs emotional rest.").font(.callout).foregroundStyle(.secondary)
             }
             card(title: "The feelings department", symbol: "heart") {
