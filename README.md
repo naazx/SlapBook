@@ -41,9 +41,9 @@ cause codesign to reject a bundle. Xcode’s normal default DerivedData path is 
 suitable. If a bundle fails signing with “resource fork, Finder information, or
 similar detritus,” clean the build folder or move DerivedData off Desktop.
 
-UI tests require a logged-in graphical macOS session and may require macOS approval
-for Xcode's test runner to control the app. The application itself does not require
-Accessibility or Input Monitoring permissions for its fixed shortcut.
+The shared SlapBook scheme runs unit tests only, including when you press **⌘U**.
+The UI test target is excluded from the default test action. The application
+itself needs no Accessibility or Input Monitoring permission for its shortcut.
 
 ## Input and hardware compatibility
 
@@ -137,10 +137,10 @@ and registration errors rather than claiming success.
 
 Unit tests cover detector warm-up, gravity rejection, debounce, sensitivity,
 invalid data, sleep gaps, cooldown, settings persistence, audio integrity and imports.
-The UI test exercises Test Sound with detection disabled. Build/test results and
-remaining manual checks are recorded in [docs/VALIDATION.md](docs/VALIDATION.md).
-UI tests use a disposable preferences suite, so future test runs leave your app's
-settings, counters, and library metadata alone.
+Lifecycle and login-item tests use isolated services and notification centers.
+They do not sleep the computer or change real Login Items. Build/test results
+and remaining manual checks are recorded in [docs/VALIDATION.md](docs/VALIDATION.md).
+The default test scheme excludes UI automation.
 
 A locally signed Apple silicon build is packaged in `dist/SlapBook-Pro-macOS.zip`.
 Unzip it and open `SlapBook.app` to try the app immediately. This is a local developer
