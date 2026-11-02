@@ -52,7 +52,13 @@ final class AppModel {
     var statusMessage: String?
     var customSounds: [CustomSound] = []
     var customPackName = "My Sound Pack"
-    var selectedCustomPack = "All sounds"
+    var selectedCustomPack = "All sounds" {
+        didSet {
+            guard libraryIsReady, selectedCustomPack != oldValue else { return }
+            defaults.set(selectedCustomPack, forKey: "selectedCustomPack")
+            warmSelectedPack()
+        }
+    }
     var launchAtLogin = false
     var loginNeedsApproval = false
     var loginStatus = ""
@@ -76,8 +82,9 @@ final class AppModel {
     @ObservationIgnored private var applicationObserver: NSObjectProtocol?
     @ObservationIgnored private var sleeping = false
     @ObservationIgnored private var isShutdown = false
+    @ObservationIgnored private var libraryIsReady = false
 
-    var customPacks: [String] { ["All sounds"] + Set(customSounds.map(\.pack)).sorted() }
+    var customPacks: [String] { ["All sounds"] + Set(customSounds.map(\.pack)).filter { $0 != "All sounds" }.sorted() }
 
     init(defaults: UserDefaults = .standard,
          workspaceCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
@@ -108,6 +115,10 @@ final class AppModel {
         if settings.mode == .secret && !secretUnlocked { settings.mode = .dramaticMoans }
         do { try audio.prepare() }
         catch { statusMessage = error.localizedDescription }
+        let restoredPack = defaults.string(forKey: "selectedCustomPack") ?? "All sounds"
+        selectedCustomPack = customPacks.contains(restoredPack) ? restoredPack : "All sounds"
+        libraryIsReady = true
+        warmSelectedPack()
         motion.onSample = { [weak self] x, y, z in
             guard let self, self.settings.detectionEnabled, !self.sleeping, !self.isShutdown else { return }
             let now = ProcessInfo.processInfo.systemUptime
@@ -219,6 +230,12 @@ final class AppModel {
     func stopPlayback() { audio.stop() }
 
     func importSounds() {
+        let trimmed = customPackName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pack = String((trimmed.isEmpty ? "My Sound Pack" : trimmed).prefix(64))
+        guard pack.caseInsensitiveCompare("All sounds") != .orderedSame else {
+            statusMessage = "Choose a different pack name. “All sounds” is reserved for the combined library."
+            return
+        }
         let panel = NSOpenPanel()
         panel.title = "Give your Mac a new vocabulary"
         panel.message = "Import audio you own or have permission to use. Up to 30 seconds / 25 MB each. Files are copied into the app's library."
@@ -226,8 +243,6 @@ final class AppModel {
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
         guard panel.runModal() == .OK else { return }
-        let trimmed = customPackName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let pack = String((trimmed.isEmpty ? "My Sound Pack" : trimmed).prefix(64))
         var errors: [String] = []
         var imported = 0
         do { try FileManager.default.createDirectory(at: CustomSound.directory, withIntermediateDirectories: true) }
@@ -253,8 +268,12 @@ final class AppModel {
             }
         }
         persistLibrary()
-        if imported > 0 { selectedCustomPack = pack; settings.mode = .custom }
         statusMessage = errors.isEmpty ? "Imported \(imported) sound\(imported == 1 ? "" : "s") into \(pack)." : errors.joined(separator: "\n")
+        if imported > 0 {
+            if selectedCustomPack == pack { warmSelectedPack() }
+            else { selectedCustomPack = pack }
+            settings.mode = .custom
+        }
     }
 
     func setSoundTapCount(_ sound: CustomSound, count: Int) {
@@ -269,6 +288,7 @@ final class AppModel {
             customSounds.removeAll { $0.id == sound.id }
             audio.clearCustomCache()
             if !customPacks.contains(selectedCustomPack) { selectedCustomPack = "All sounds" }
+            else { warmSelectedPack() }
             persistLibrary()
         } catch { statusMessage = "Could not remove sound: \(error.localizedDescription)" }
     }
@@ -276,6 +296,13 @@ final class AppModel {
     private func persistLibrary() {
         do { defaults.set(try JSONEncoder().encode(customSounds), forKey: "customSounds") }
         catch { statusMessage = "Could not save sound library: \(error.localizedDescription)" }
+    }
+
+    private func warmSelectedPack() {
+        guard libraryIsReady, !isShutdown else { return }
+        let urls = customSounds.filter { selectedCustomPack == "All sounds" || $0.pack == selectedCustomPack }.map(\.url)
+        do { try audio.preloadCustom(urls: urls) }
+        catch { statusMessage = "Could not prepare custom sounds: \(error.localizedDescription)" }
     }
 
     func unlockSecret() {

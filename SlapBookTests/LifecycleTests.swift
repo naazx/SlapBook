@@ -110,6 +110,38 @@ struct LifecycleTests {
         #expect(fixture.login.settingsOpens == 1)
     }
 
+    @Test func selectedCustomPackRestoresAndOnlyItsAudioIsPrewarmed() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+        let sounds = [
+            CustomSound(id: UUID(), name: "Ah", pack: "One", tapCount: 0, filename: "one.wav"),
+            CustomSound(id: UUID(), name: "Oh", pack: "Two", tapCount: 0, filename: "two.wav")
+        ]
+        fixture.model.customSounds = sounds
+        fixture.model.selectedCustomPack = "Two"
+        #expect(fixture.audio.warmed.last == [sounds[1].url])
+        fixture.model.settings.volume = 0.5
+        let warmCount = fixture.audio.warmed.count
+        fixture.model.settings.volume = 0.4
+        #expect(fixture.audio.warmed.count == warmCount)
+        fixture.defaults.set(try JSONEncoder().encode(sounds), forKey: "customSounds")
+        let restoredAudio = FakeAudio()
+        let restored = AppModel(defaults: fixture.defaults, workspaceCenter: NotificationCenter(),
+                                applicationCenter: NotificationCenter(), audio: restoredAudio,
+                                motion: FakeMotion(), shortcut: FakeShortcut(), loginItem: FakeLogin())
+        defer { restored.shutdown() }
+        #expect(restored.selectedCustomPack == "Two")
+        #expect(restoredAudio.warmed == [[sounds[1].url]])
+    }
+    @Test func combinedLibraryNameIsReservedBeforeOpeningAFilePanel() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+        fixture.model.customPackName = " All sounds "
+        fixture.model.importSounds()
+        #expect(fixture.model.statusMessage?.contains("reserved") == true)
+        #expect(fixture.model.customSounds.isEmpty)
+        #expect(fixture.model.customPacks == ["All sounds"])
+    }
 }
 
 @MainActor
