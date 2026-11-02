@@ -85,6 +85,7 @@ struct ContentView: View {
                         HStack(spacing: 11) {
                             Image(systemName: item.symbol).frame(width: 19)
                             Text(item.rawValue).font(.system(size: 13, weight: destination == item ? .semibold : .medium))
+                                .lineLimit(1).minimumScaleFactor(0.85)
                             Spacer(minLength: 0)
                             if destination == item { Circle().fill(purple).frame(width: 5, height: 5) }
                         }

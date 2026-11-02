@@ -17,12 +17,14 @@ struct SoundCreditsView: View {
                 .font(.title2.bold())
             Text("Dramatic Moans contains edited human recordings from Freesound, dedicated to the public domain under CC0 1.0. Clips are trimmed, normalized, and arranged into reaction patterns.")
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             ForEach(credits, id: \.url) { credit in
                 if let url = URL(string: credit.url) { Link(credit.name, destination: url) }
             }
             Divider()
             Text("The other modes contain original synthesized character voices, also released under CC0. No celebrity voices, film clips, or unlicensed meme recordings are included.")
                 .font(.callout).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Link("CC0 1.0 dedication", destination: URL(string: "https://creativecommons.org/publicdomain/zero/1.0/")!)
                 Spacer()

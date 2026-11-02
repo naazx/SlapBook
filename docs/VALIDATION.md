@@ -57,6 +57,16 @@ request; their new uncommitted changes were removed and the legacy target is exc
 from the shared scheme. Menu-bar close/reopen, light appearance and real sleep/wake
 integration remain manual verification items. No actual login/logout cycle was run.
 
+## Light and dark rendering pass
+
+A temporary unit test rendered the Playground, Sound Library, Detection and
+Settings pages, the menu bar popover and Sound Credits offscreen in both Aqua
+and Dark Aqua (not committed). Two layout defects were found and fixed:
+Sound Credits truncated its two paragraphs with an ellipsis, and the selected
+"Settings & About" sidebar item wrapped onto two lines. All other surfaces kept
+readable contrast in both appearances. This is offscreen rendering, not a live
+window or menu-bar interaction; close/reopen and real sleep/wake stay manual.
+
 ## Focused implementation commits
 
 - `69a418d` — unavailable audio outputs and prepared-engine suspension.
