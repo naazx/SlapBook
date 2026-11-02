@@ -88,16 +88,22 @@ read-only diagnostic (`swift Tools/hardware-probe.swift`).
 
 ## Sounds and custom packs
 
-Six built-in personalities contain **36 original synthesized character clips**:
+Six built-in personalities contain **36 reaction clips**:
 Shy, Anime, Drama Queen, Chaos, Dramatic Moans, and unlockable Secret Mode. Secret
-Mode is unlocked by clicking its card in Sound Library. These are stylized vowel,
-gasp, giggle, squeak and sigh effects, **not human recordings or licensed meme clips**.
-Dramatic Moans is a non-explicit theatrical aaah/oooh pack. Each mode includes
+Mode is unlocked by clicking its card in Sound Library. **Dramatic Moans contains
+six edits of real CC0 human recordings**: a long ah, a surprised oh, gasps and a
+sigh, arranged for single/double/triple inputs. The other 30 reactions are original
+synthesized vowel, giggle, squeak and cartoon effects. No licensed meme clips or
+celebrity voices are bundled. Each mode includes
 single, double and triple variants, a shuffle bag, optional pitch/rate variation,
 volume, and immediate mute. All clips are predecoded to PCM for responsive playback.
 
-The bundled audio is original DSP synthesis dedicated to **CC0-1.0**. Its deterministic
-standard-library Python generator, clip manifest, and license are committed. There
+All bundled audio is **CC0-1.0**. The five human source recordings, exact public
+preview URLs, authors, licenses and hashes are committed alongside the generator
+and clip manifest. Sound Credits in Settings lists the performers and links to
+their primary source pages. The human sources are compressed HQ MP3 previews,
+not original WAV masters. Regeneration uses Python’s standard library and macOS
+`afconvert`; the installed decoder may affect exact output samples. There
 are no remote asset dependencies and no silent substitutions if an asset is missing.
 See [audio provenance and implementation](docs/AUDIO.md). Regenerate with:
 

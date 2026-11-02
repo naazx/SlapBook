@@ -10,8 +10,17 @@ struct AudioTests {
             let file: String
             let mode: String
             let tapCount: Int
+            let kind: String
+            let sourceIDs: [String]
+        }
+        struct Source: Decodable {
+            let id: String
+            let author: String
+            let page: String
+            let license: String
         }
         let clips: [Clip]
+        let sources: [Source]
     }
 
     private func resource(_ name: String, extension ext: String) throws -> URL {
@@ -55,6 +64,26 @@ struct AudioTests {
         try Data("not an audio file".utf8).write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
         #expect(throws: (any Error).self) { try AudioEngine().validate(url: url) }
+    }
+
+    @Test func recordedReactionsHaveCompleteCC0Provenance() throws {
+        let manifest = try JSONDecoder().decode(Manifest.self,
+            from: Data(contentsOf: resource("sound_manifest", extension: "json")))
+        let recorded = manifest.clips.filter { $0.kind == "recorded-human" }
+        #expect(recorded.count == 6)
+        #expect(manifest.clips.filter { $0.kind == "synthesized" }.count == 30)
+        let sourceIDs = Set(manifest.sources.map(\.id))
+        #expect(sourceIDs == Set(["536839", "798372", "414213", "242606", "265249"]))
+        #expect(Set(recorded.flatMap(\.sourceIDs)) == sourceIDs)
+        for clip in recorded {
+            #expect(clip.mode == "dramaticMoans")
+            #expect(clip.sourceIDs.count == clip.tapCount)
+        }
+        for source in manifest.sources {
+            #expect(source.license == "CC0-1.0")
+            #expect(!source.author.isEmpty)
+            #expect(source.page.hasPrefix("https://freesound.org/people/"))
+        }
     }
 
     @Test func stereoImportsAtAnotherRateCanDecode() throws {

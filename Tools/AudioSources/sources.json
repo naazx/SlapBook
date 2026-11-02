@@ -1,0 +1,65 @@
+{
+  "description": "Human vocal recordings from public Freesound HQ MP3 previews, not original WAV downloads.",
+  "sources": [
+    {
+      "id": "536839",
+      "author": "marythewitch",
+      "title": "Ah! sound female",
+      "page": "https://freesound.org/people/marythewitch/sounds/536839/",
+      "preview": "https://cdn.freesound.org/previews/536/536839_11890919-hq.mp3",
+      "file": "ah.mp3",
+      "license": "CC0-1.0",
+      "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sha256": "8e2ca0f59a2c1eacb381a3c50029c3ebaa3b611c4c533b1c2e9ccfcf5a6fa04e",
+      "bytes": 112754
+    },
+    {
+      "id": "798372",
+      "author": "Airlane1979",
+      "title": "Short Oh!",
+      "page": "https://freesound.org/people/Airlane1979/sounds/798372/",
+      "preview": "https://cdn.freesound.org/previews/798/798372_7885686-hq.mp3",
+      "file": "oh.mp3",
+      "license": "CC0-1.0",
+      "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sha256": "927880107dfd5df1aaf42448f20650069c382e08488a65ffa50ef498f99867f6",
+      "bytes": 5844
+    },
+    {
+      "id": "414213",
+      "author": "iokera",
+      "title": "gasp.wav",
+      "page": "https://freesound.org/people/iokera/sounds/414213/",
+      "preview": "https://cdn.freesound.org/previews/414/414213_7851214-hq.mp3",
+      "file": "gasp.mp3",
+      "license": "CC0-1.0",
+      "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sha256": "08bbf62aa208f39d19074742f88edc7b0c83c8a6cc116ecf58601f417b8fa3dd",
+      "bytes": 20687
+    },
+    {
+      "id": "242606",
+      "author": "Reitanna",
+      "title": "gasp HOH!.wav",
+      "page": "https://freesound.org/people/Reitanna/sounds/242606/",
+      "preview": "https://cdn.freesound.org/previews/242/242606_950925-hq.mp3",
+      "file": "hoh.mp3",
+      "license": "CC0-1.0",
+      "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sha256": "396e4ce8cbe30d2f1a4e17b2346d01d5e433d933b311e06cea6f2b10f012659d",
+      "bytes": 20544
+    },
+    {
+      "id": "265249",
+      "author": "wjtaylor",
+      "title": "sigh",
+      "page": "https://freesound.org/people/wjtaylor/sounds/265249/",
+      "preview": "https://cdn.freesound.org/previews/265/265249_4989900-hq.mp3",
+      "file": "sigh.mp3",
+      "license": "CC0-1.0",
+      "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sha256": "a547ca4ef17f2796764c88832c2463c6acc02efce5d0800f0941e08933930960",
+      "bytes": 28646
+    }
+  ]
+}

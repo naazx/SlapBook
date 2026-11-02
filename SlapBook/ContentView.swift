@@ -17,6 +17,7 @@ struct ContentView: View {
     @Bindable var model: AppModel
     @State private var destination: Destination = .playground
     @State private var inputPulse = false
+    @State private var showingSoundCredits = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let purple = Color(red: 0.48, green: 0.35, blue: 0.88)
@@ -53,6 +54,7 @@ struct ContentView: View {
             .background(canvas)
         }
         .frame(minWidth: 920, minHeight: 700).tint(purple)
+        .sheet(isPresented: $showingSoundCredits) { SoundCreditsView() }
         .onChange(of: model.tapCount) { oldCount, newCount in
             guard newCount > oldCount else { return }
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) { inputPulse = true }
@@ -200,7 +202,7 @@ struct ContentView: View {
                     Button("Send an input") { model.triggerManualTap() }.font(.system(size: 11)).buttonStyle(.link).accessibilityIdentifier("manualTapButton")
                 }
             }
-            Label("Built-in voices are original synthesized characters. Chassis sensing is experimental. Test Sound works independently of detection; mute and volume still apply.", systemImage: "info.circle")
+            Label("Dramatic Moans uses CC0 human voices; other modes use original synth characters. Chassis sensing is experimental. Test Sound respects mute and volume.", systemImage: "info.circle")
                 .font(.system(size: 11)).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -208,7 +210,7 @@ struct ContentView: View {
     private var library: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack {
-                sectionHeading("Choose your chaos", subtitle: "Original synthesized vocal characters, ready to react.")
+                sectionHeading("Choose your chaos", subtitle: "CC0 human reactions and original synth characters, ready to react.")
                 Spacer()
                 Button { model.testSound() } label: { Label("Test Sound", systemImage: "play.fill") }.buttonStyle(.borderedProminent)
             }
@@ -334,7 +336,8 @@ struct ContentView: View {
                 Divider().padding(.vertical, 5)
                 Text("Native SwiftUI · Local audio · No account · No microphone recording").font(.system(size: 11)).foregroundStyle(.secondary)
                 Text("Counts include keyboard and button inputs; test sounds do not increase the input counter. No left/right statistics are invented.").font(.system(size: 11)).foregroundStyle(.secondary)
-                Text("Built-in audio: original synthesized character voices. See docs/AUDIO.md in the project for provenance and generation details.").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("Audio: CC0 human reactions and original synthesized characters.").font(.system(size: 11)).foregroundStyle(.secondary)
+                Button("Sound Credits…") { showingSoundCredits = true }
                 Button("Reset Statistics", action: model.resetStatistics)
             }
         }

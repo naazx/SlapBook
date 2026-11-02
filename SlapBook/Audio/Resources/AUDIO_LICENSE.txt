@@ -1,15 +1,34 @@
-SlapBook Pro original synthesized character voices
+SlapBook Pro audio credits — CC0 1.0
 
-All sb_*.wav files in this directory are original procedural audio, created by
-Tools/generate_sound_pack.py. They contain no sampled recordings, Apple system
-speech output, third-party audio, copyrighted songs, or cloned human voices.
-They are stylized synthesized vocal effects, NOT recordings of human performers.
+Dramatic Moans uses six edited human vocal reactions made from these CC0 sounds:
 
-To the extent possible under law, the author(s) have dedicated this generated
-audio and its sound_manifest.json metadata to the public domain under the
-Creative Commons CC0 1.0 Universal dedication:
+marythewitch — Ah! sound female (536839)
+https://freesound.org/people/marythewitch/sounds/536839/
+
+Airlane1979 — Short Oh! (798372)
+https://freesound.org/people/Airlane1979/sounds/798372/
+
+iokera — gasp.wav (414213)
+https://freesound.org/people/iokera/sounds/414213/
+
+Reitanna — gasp HOH!.wav (242606)
+https://freesound.org/people/Reitanna/sounds/242606/
+
+wjtaylor — sigh (265249)
+https://freesound.org/people/wjtaylor/sounds/265249/
+
+Source: public HQ MP3 previews of those sounds, not original WAV masters.
+Edits: conversion to mono 44.1 kHz PCM, silence trimming, fades, normalization,
+and arrangement into single/double/triple reaction patterns.
+Tools/AudioSources/sources.json records exact source URLs and SHA-256 hashes.
+
+The other 30 sb_*.wav files are original procedural character voices generated
+by Tools/generate_sound_pack.py. They contain no sampled speech, Apple system
+voice output, copyrighted songs, film clips, or cloned human voices.
+
+All bundled audio and manifest metadata are released under the Creative Commons
+CC0 1.0 Universal public-domain dedication:
 https://creativecommons.org/publicdomain/zero/1.0/
 
-The Python generator and Swift implementation are project source code, not
-third-party dependencies. Imported audio remains the user's responsibility and
-is never represented as part of this CC0 pack.
+Imported audio is not part of this CC0 pack. The Swift and Python implementations
+are project source code, not third-party dependencies.

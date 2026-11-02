@@ -49,8 +49,8 @@ enum ReactionAudioError: LocalizedError {
     }
 }
 
-/// All playback is local. Built-ins are original synthesized character voices,
-/// explicitly identified in the app and the pack's provenance manifest.
+/// All playback is local. Built-ins combine original synthesized characters
+/// with credited CC0 human recordings, identified in the pack's manifest.
 @MainActor
 final class AudioEngine {
     private struct Manifest: Decodable {
