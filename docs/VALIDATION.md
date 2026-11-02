@@ -67,6 +67,12 @@ Sound Credits truncated its two paragraphs with an ellipsis, and the selected
 readable contrast in both appearances. This is offscreen rendering, not a live
 window or menu-bar interaction; close/reopen and real sleep/wake stay manual.
 
+A launched Debug build ran as a UIElement (no Dock icon), settled at 0% CPU and
+about 100 MB resident, and logged no SlapBook errors; only system App Intents
+registration noise appeared. Route changes were reviewed in code, not with
+hardware: every reaction calls `prepare()`, which rechecks the output format and
+restarts a stopped engine, so a device switch is picked up on the next reaction.
+
 ## Focused implementation commits
 
 - `69a418d` — unavailable audio outputs and prepared-engine suspension.
