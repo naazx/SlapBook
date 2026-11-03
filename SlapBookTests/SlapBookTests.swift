@@ -57,13 +57,16 @@ struct SlapBookTests {
         verify(settings.cooldown == 0.2)
         verify(settings.mode == .dramaticMoans)
         verify(!settings.experimentalMotionEnabled)
+        verify(settings.openWindowAtLaunch)
         settings.mode = .chaos
+        settings.openWindowAtLaunch = false
         settings.muted = true
         settings.sensitivity = 0.8
         let restored = SettingsStore(defaults: defaults)
         verify(restored.mode == .chaos)
         verify(restored.muted)
         verify(restored.sensitivity == 0.8)
+        verify(!restored.openWindowAtLaunch)
     }
 }
 

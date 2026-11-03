@@ -323,6 +323,9 @@ struct ContentView: View {
                 if model.loginNeedsApproval {
                     Button("Review in System Settings…", action: model.openLoginItemSettings)
                 }
+                Toggle("Open this window when SlapBook starts", isOn: $model.settings.openWindowAtLaunch)
+                    .accessibilityIdentifier("openWindowAtLaunchToggle")
+                Text("Turn this off to start quietly in the menu bar, for example at login. Open SlapBook from Finder, Spotlight, or the menu bar to bring the window back.").font(.system(size: 11)).foregroundStyle(.secondary)
                 Text("Close this window to keep SlapBook in your menu bar. Quit from the menu bar when your Mac needs emotional rest.").font(.callout).foregroundStyle(.secondary)
             }
             card(title: "The feelings department", symbol: "heart") {
