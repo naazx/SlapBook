@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 
 @MainActor
 protocol ReactionAudioService: AnyObject {
+    var isPlayingReaction: Bool { get }
     func prepare() throws
     func play(mode: SoundMode, tapCount: Int, volume: Double, pitchVariation: Bool, customURLs: [URL]) throws -> String
     func setOutput(volume: Double, muted: Bool)
@@ -211,6 +212,7 @@ final class AppModel {
             if isTest { statusMessage = "Sound is muted or volume is zero. Raise the volume to hear your Mac's feelings." }
             return
         }
+        guard isTest || !audio.isPlayingReaction else { return }
         var nextGate = gate
         guard isTest || nextGate.accept(at: ProcessInfo.processInfo.systemUptime, cooldown: settings.cooldown) else { return }
         let matching = customSounds.filter {

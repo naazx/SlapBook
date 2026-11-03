@@ -14,9 +14,10 @@ No third-party dependencies, network service, microphone capture, or administrat
    **Sign to Run Locally** for local development. The bundle identifier is
    `com.nazardydyn.SlapBook`; change it for distribution if needed.
 4. Press **⌘R**. The Playground window opens and a laptop icon appears in the menu bar.
-5. Click **Test Sound**. This works with detection off and bypasses its cooldown.
-   Single / Double / Triple buttons audition the separately authored reactions.
-   Sound testing respects mute and volume. Use Settings → Stop Playback to stop a clip.
+5. Click **Test Sound**. It works with detection off, bypasses cooldown, and replaces
+   any clip already playing. Single / Double / Triple buttons audition the separately
+   authored reactions. Sound testing respects mute and volume. Use Settings → Stop
+   Playback to stop a clip.
 6. Close the window to keep the menu bar app running. Use **Open SlapBook…** in the
    menu bar, or open the app again from Finder or Spotlight, to bring it back, and
    **Quit** to exit. The app intentionally has no Dock icon. To start quietly in the
@@ -56,20 +57,18 @@ Press **⌥⌘S** anywhere when detection and the shortcut are enabled, or use
 shortcut) are shown in Detection. The fixed combination uses `RegisterEventHotKey`,
 so it does not record general keystrokes. Test Sound always remains independent.
 
-On the available host, model `Mac16,1`, the registry exposes an SPU accelerometer
-with vendor page `0xFF00`, usage `3`, and 22-byte input reports. The diagnostic
-attempt to open it returned **`kIOReturnNotPermitted` (`0xe00002e2`)** in the restricted
-execution context. **No actual chassis taps or left/right locations were verified.**
-The normally launched, sandboxed Release app also returned that access-denied
-status when its experimental option was tested.
+To try physical input, open **Detection** and turn on **Experimental chassis motion**.
+The app uses public IOKit calls with an **undocumented AppleSPU protocol** and reports
+streaming after receiving plausible sensor packets. If an idle accelerometer sends
+no valid reports within 200 ms, the app requests an 8 ms report interval on its
+matched driver and restores the idle interval when the session closes.
 
-`CMMotionManager` is unavailable on native macOS in the installed SDK. Experimental
-AppleSPU reading uses public IOKit HID calls but an **undocumented device protocol**;
-it is not a supported Apple motion API. It is disabled by default. If you explicitly
-enable it, the app only reports streaming after receiving plausible real packets.
-Denied access, missing devices, or a 3-second report timeout leave the supported
-input alternative available. No fabricated samples, private frameworks, root
-processes, or permission bypasses are used. App Sandbox stays enabled.
+App Sandbox stays enabled with IOKit exceptions for `IOHIDLibUserClient` and
+`AppleSPUHIDDriver`. A signed, sandboxed probe received 133 real accelerometer
+packets in one second on a `Mac16,1` Apple M4 running macOS 27.0.1. Physical tap
+recognition and left/right location remain unverified. The keyboard and button
+inputs remain available if the device is missing, access is denied, or reports
+time out.
 
 If a device permits streaming, the generic detector uses a gravity-removing filter,
 a sensitivity threshold, hysteresis, a warm-up period, and 120 ms mechanical debounce.
@@ -78,13 +77,13 @@ from intentional taps. Its thresholds have algorithmic tests, **not physical M4
 calibration**. Left/right statistics are omitted because location is not established.
 Use only gentle taps; never increase force to get a response.
 
-Detection off disables automatic input reactions; sound previews remain available.
+Turning off detection disables automatic reactions and leaves sound previews available.
 Cooldown is adjustable from 0.2–3 seconds. Optional rhythm grouping waits 250 ms after
 the latest input (or fires on the third) to select a double/triple reaction, trading
-some responsiveness for pattern recognition. Default single reactions are immediate
-at the application layer; audible end-to-end latency has not been measured.
-Input counts include shortcut and on-screen events, including events suppressed by
-cooldown or mute. Sound previews increase reactions played, not inputs received.
+some responsiveness for pattern recognition. Default single reactions are scheduled
+immediately when playback is available. Audible end-to-end latency remains unmeasured.
+Input counts include events skipped during cooldown, mute, or active playback. A
+sound preview increments only the reaction count.
 
 See [the hardware investigation](docs/HARDWARE.md) for sources and the reproducible
 read-only diagnostic (`swift Tools/hardware-probe.swift`).

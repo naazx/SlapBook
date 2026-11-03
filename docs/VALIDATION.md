@@ -4,7 +4,17 @@ Updated 3 November 2026. Earlier work merged through PRs #1 and #2; the completi
 pass below is on `codex/post-merge-polish`. No installation, login-item
 registration, or distribution deployment was performed.
 
-## Current verified build
+## Chassis motion follow-up
+
+- A signed, sandboxed harness running the production motion service received 237
+  valid samples over two seconds on MacBook Pro M4 (`Mac16,1`, macOS 27.0.1).
+  The read-only probe received zero reports after the service stopped.
+- The shared Xcode scheme passed all 21 unit tests, including the regression test
+  for automatic input during playback.
+- A physical tap-to-sound check and sensitivity calibration still require manual
+  testing. See [the hardware investigation](HARDWARE.md) for the permission checks.
+
+## Post-merge polish build
 
 - Xcode 27.0 / Swift 6.4, Swift 6 language mode, macOS 14 deployment target.
 - Debug test build and optimized Apple silicon Release build succeed on macOS 27.0.1.
