@@ -182,7 +182,7 @@ struct ContentView: View {
             HStack(alignment: .top, spacing: 18) {
                 card(title: "The mood", symbol: "theatermasks") {
                     Picker("Sound Mode", selection: $model.settings.mode) {
-                        ForEach(SoundMode.allCases.filter { $0 != .secret || model.secretUnlocked }) { mode in Text(mode.title).tag(mode) }
+                        ForEach(model.availableModes) { mode in Text(mode.title).tag(mode) }
                     }.labelsHidden().pickerStyle(.menu).frame(maxWidth: .infinity, alignment: .leading)
                     Text(model.settings.mode.subtitle).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     sliderRow("Volume", value: $model.settings.volume, range: 0...1, text: "\(Int(model.settings.volume * 100))%", symbol: "speaker.wave.2")
@@ -323,6 +323,9 @@ struct ContentView: View {
                 if model.loginNeedsApproval {
                     Button("Review in System Settings…", action: model.openLoginItemSettings)
                 }
+                Toggle("Open this window when SlapBook starts", isOn: $model.settings.openWindowAtLaunch)
+                    .accessibilityIdentifier("openWindowAtLaunchToggle")
+                Text("Turn this off to start quietly in the menu bar, for example at login. Open SlapBook from Finder, Spotlight, or the menu bar to bring the window back.").font(.system(size: 11)).foregroundStyle(.secondary)
                 Text("Close this window to keep SlapBook in your menu bar. Quit from the menu bar when your Mac needs emotional rest.").font(.callout).foregroundStyle(.secondary)
             }
             card(title: "The feelings department", symbol: "heart") {

@@ -16,6 +16,7 @@ final class SettingsStore {
     var multiTapEnabled: Bool { didSet { persist() } }
     var experimentalMotionEnabled: Bool { didSet { persist() } }
     var shortcutEnabled: Bool { didSet { persist() } }
+    var openWindowAtLaunch: Bool { didSet { persist() } }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -23,7 +24,8 @@ final class SettingsStore {
             "detectionEnabled": true, "sensitivity": 0.5, "volume": 0.65,
             "cooldown": 0.7, "mode": SoundMode.dramaticMoans.rawValue,
             "muted": false, "pitchVariation": true, "multiTapEnabled": false,
-            "experimentalMotionEnabled": false, "shortcutEnabled": true
+            "experimentalMotionEnabled": false, "shortcutEnabled": true,
+            "openWindowAtLaunch": true
         ])
         detectionEnabled = defaults.bool(forKey: "detectionEnabled")
         sensitivity = Self.clamp(defaults.double(forKey: "sensitivity"), 0...1)
@@ -35,6 +37,7 @@ final class SettingsStore {
         multiTapEnabled = defaults.bool(forKey: "multiTapEnabled")
         experimentalMotionEnabled = defaults.bool(forKey: "experimentalMotionEnabled")
         shortcutEnabled = defaults.bool(forKey: "shortcutEnabled")
+        openWindowAtLaunch = defaults.bool(forKey: "openWindowAtLaunch")
     }
 
     private static func clamp(_ value: Double, _ range: ClosedRange<Double>) -> Double {
@@ -52,6 +55,7 @@ final class SettingsStore {
         defaults.set(multiTapEnabled, forKey: "multiTapEnabled")
         defaults.set(experimentalMotionEnabled, forKey: "experimentalMotionEnabled")
         defaults.set(shortcutEnabled, forKey: "shortcutEnabled")
+        defaults.set(openWindowAtLaunch, forKey: "openWindowAtLaunch")
         onChange?()
     }
 }

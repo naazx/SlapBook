@@ -133,6 +133,29 @@ struct LifecycleTests {
         #expect(restored.selectedCustomPack == "Two")
         #expect(restoredAudio.warmed == [[sounds[1].url]])
     }
+    @Test func customModeIsOfferedOnlyWhileSoundsExist() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+        let model = fixture.model
+        #expect(!model.availableModes.contains(.custom))
+        model.settings.mode = .custom
+        #expect(model.settings.mode == .dramaticMoans)
+        let sound = CustomSound(id: UUID(), name: "Ah", pack: "One", tapCount: 0,
+                                filename: UUID().uuidString + ".wav")
+        model.customSounds = [sound]
+        #expect(model.availableModes.contains(.custom))
+        model.settings.mode = .custom
+        #expect(model.settings.mode == .custom)
+        model.removeSound(sound)
+        #expect(model.settings.mode == .dramaticMoans)
+        #expect(!model.availableModes.contains(.custom))
+        fixture.defaults.set(SoundMode.custom.rawValue, forKey: "mode")
+        let restored = AppModel(defaults: fixture.defaults, workspaceCenter: NotificationCenter(),
+                                applicationCenter: NotificationCenter(), audio: FakeAudio(),
+                                motion: FakeMotion(), shortcut: FakeShortcut(), loginItem: FakeLogin())
+        defer { restored.shutdown() }
+        #expect(restored.settings.mode == .dramaticMoans)
+    }
     @Test func combinedLibraryNameIsReservedBeforeOpeningAFilePanel() throws {
         let fixture = try Fixture()
         defer { fixture.cleanup() }

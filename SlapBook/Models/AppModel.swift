@@ -85,6 +85,10 @@ final class AppModel {
     @ObservationIgnored private var libraryIsReady = false
 
     var customPacks: [String] { ["All sounds"] + Set(customSounds.map(\.pack)).filter { $0 != "All sounds" }.sorted() }
+    /// Modes a picker may offer: Secret once unlocked, Custom once a sound exists.
+    var availableModes: [SoundMode] {
+        SoundMode.allCases.filter { ($0 != .secret || secretUnlocked) && ($0 != .custom || !customSounds.isEmpty) }
+    }
 
     init(defaults: UserDefaults = .standard,
          workspaceCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
@@ -112,7 +116,7 @@ final class AppModel {
                     .filter { !$0.filename.contains("/") && !$0.filename.contains("..") }
             } catch { statusMessage = "Could not restore custom sound library: \(error.localizedDescription)" }
         }
-        if settings.mode == .secret && !secretUnlocked { settings.mode = .dramaticMoans }
+        if !availableModes.contains(settings.mode) { settings.mode = .dramaticMoans }
         do { try audio.prepare() }
         catch { statusMessage = error.localizedDescription }
         let restoredPack = defaults.string(forKey: "selectedCustomPack") ?? "All sounds"
@@ -151,7 +155,7 @@ final class AppModel {
             cancelPendingGroup()
         }
         currentGroupingEnabled = settings.multiTapEnabled
-        if settings.mode == .secret && !secretUnlocked { settings.mode = .dramaticMoans; return }
+        if !availableModes.contains(settings.mode) { settings.mode = .dramaticMoans; return }
         let wantsMotion = settings.detectionEnabled && settings.experimentalMotionEnabled && !sleeping
         if currentMotionEnabled != wantsMotion {
             currentMotionEnabled = wantsMotion
@@ -287,6 +291,8 @@ final class AppModel {
             if FileManager.default.fileExists(atPath: sound.url.path) { try FileManager.default.removeItem(at: sound.url) }
             customSounds.removeAll { $0.id == sound.id }
             audio.clearCustomCache()
+            // An empty Custom mode would answer every input with an error.
+            if customSounds.isEmpty && settings.mode == .custom { settings.mode = .dramaticMoans }
             if !customPacks.contains(selectedCustomPack) { selectedCustomPack = "All sounds" }
             else { warmSelectedPack() }
             persistLibrary()
