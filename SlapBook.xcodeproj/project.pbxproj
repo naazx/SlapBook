@@ -379,6 +379,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "SlapBook Pro";
 				INFOPLIST_KEY_CFBundleName = "SlapBook Pro";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Nazar Dydyn. Bundled audio is CC0 1.0.";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -413,6 +414,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "SlapBook Pro";
 				INFOPLIST_KEY_CFBundleName = "SlapBook Pro";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Nazar Dydyn. Bundled audio is CC0 1.0.";
 				LD_RUNPATH_SEARCH_PATHS = (
