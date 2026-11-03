@@ -113,6 +113,12 @@ See [audio provenance and implementation](docs/AUDIO.md). Regenerate with:
 python3 Tools/generate_sound_pack.py
 ```
 
+The optional [EllenMentor Short clip](SoundPacks/ellenmentor-short.wav) is a
+2.4-second excerpt with short fades, edited from the public MP3 preview of
+[Moan.wav by ellenmentor](https://freesound.org/people/ellenmentor/sounds/459126/)
+([CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)). Import it as
+its own pack and select **Use Custom Mode** to use it for every rhythm.
+
 To use real human performances or other audio you have rights to use:
 
 1. In **Sound Library**, enter a pack name and choose **Import Sounds…**.
