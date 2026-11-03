@@ -3,13 +3,15 @@ import IOKit
 import IOKit.hid
 
 /// Uses public IOKit calls with an *undocumented* AppleSPU report layout.
-/// Never enabled automatically, never asks for elevated privileges, never invents samples.
+/// Opt-in only. Starts reporting on the matched accelerometer when it is idle.
 @MainActor
 final class ExperimentalMotionInput {
     var onSample: ((Double, Double, Double) -> Void)?
     var onStatus: ((String, Bool) -> Void)?
 
     private var device: IOHIDDevice?
+    private var driver: io_service_t?
+    private var startedReporting = false
     private var buffer: UnsafeMutablePointer<UInt8>?
     private var watchdog: Task<Void, Never>?
     private var requested = false
@@ -39,6 +41,7 @@ final class ExperimentalMotionInput {
             return
         }
         device = candidate
+        driver = HardwareProbe.accelerationDriver(for: service)
         let storage = UnsafeMutablePointer<UInt8>.allocate(capacity: 64)
         storage.initialize(repeating: 0, count: 64)
         buffer = storage
@@ -57,6 +60,9 @@ final class ExperimentalMotionInput {
         IOHIDDeviceScheduleWithRunLoop(candidate, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
         onStatus?("Waiting for real sensor reports…", false)
         watchdog = Task { @MainActor [weak self] in
+            do { try await Task.sleep(for: .milliseconds(200)) } catch { return }
+            guard !Task.isCancelled else { return }
+            self?.startReportingIfNeeded()
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .seconds(1)) } catch { return }
                 guard let self, self.device != nil else { return }
@@ -78,6 +84,14 @@ final class ExperimentalMotionInput {
     private func closeSession() {
         watchdog?.cancel()
         watchdog = nil
+        if let driver {
+            if startedReporting {
+                IORegistryEntrySetCFProperty(driver, "ReportInterval" as CFString, NSNumber(value: Int32(0)))
+            }
+            IOObjectRelease(driver)
+        }
+        driver = nil
+        startedReporting = false
         if let device {
             IOHIDDeviceUnscheduleFromRunLoop(device, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
             IOHIDDeviceClose(device, IOOptionBits(kIOHIDOptionsTypeNone))
@@ -88,6 +102,22 @@ final class ExperimentalMotionInput {
         buffer = nil
         validReports = 0
         streaming = false
+    }
+
+    private func startReportingIfNeeded() {
+        guard validReports == 0, let driver,
+              (IORegistryEntryCreateCFProperty(driver, "ReportInterval" as CFString, kCFAllocatorDefault, 0)?
+                .takeRetainedValue() as? NSNumber)?.intValue == 0 else { return }
+        // The device's nonexclusive HID open alone can succeed without starting
+        // reports. Request the M4's 8 ms interval on its driver, then restore idle on close.
+        let result = IORegistryEntrySetCFProperty(driver, "ReportInterval" as CFString, NSNumber(value: Int32(8_000)))
+        if result == KERN_SUCCESS {
+            startedReporting = true
+        } else {
+            let code = String(format: "0x%08x", UInt32(bitPattern: result))
+            closeSession()
+            onStatus?("Sensor opened, but macOS could not start reports (\(code)). Keyboard input remains available.", false)
+        }
     }
 
     private func receive(_ bytes: UnsafeMutablePointer<UInt8>, length: Int) {

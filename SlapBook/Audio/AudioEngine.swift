@@ -85,8 +85,10 @@ final class AudioEngine {
     private var customPoolID: String?
     private var outputVolume: Float = 0.7
     private var muted = false
+    private var playbackID: UUID?
 
     var availableBuiltInCount: Int { builtInBuffers.count }
+    var isPlayingReaction: Bool { playbackID != nil && engine.isRunning && player.isPlaying }
 
     init(bundle: Bundle = .main) {
         self.bundle = bundle
@@ -155,7 +157,7 @@ final class AudioEngine {
         if !engine.isRunning { try engine.start() }
     }
 
-    /// Stops existing playback before scheduling, so reactions never stack.
+    /// Replaces existing playback when an explicit preview requests a new clip.
     /// The tap count selects a separately authored single/double/triple clip.
     @discardableResult
     func play(mode: SoundMode, tapCount: Int, volume: Double,
@@ -196,14 +198,27 @@ final class AudioEngine {
             buffer = cached
             title = clip.title
         }
-        player.stop()
+        stop()
         pitch.pitch = pitchVariation ? Float.random(in: -140...140) : 0
         pitch.rate = pitchVariation ? Float.random(in: 0.96...1.04) : 1
         outputVolume = Float(min(1, max(0, volume)))
         player.volume = muted ? 0 : outputVolume
-        player.scheduleBuffer(buffer)
-        if #available(macOS 27.0, *) { try player.playAudio() }
-        else { player.play() }
+        let playbackID = UUID()
+        self.playbackID = playbackID
+        player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { @Sendable [weak self] _ in
+            Task { @MainActor [weak self] in
+                // Stopping a clip can also call its completion handler.
+                guard self?.playbackID == playbackID else { return }
+                self?.playbackID = nil
+            }
+        }
+        do {
+            if #available(macOS 27.0, *) { try player.playAudio() }
+            else { player.play() }
+        } catch {
+            stop()
+            throw error
+        }
         return title
     }
 
@@ -212,17 +227,20 @@ final class AudioEngine {
         self.muted = muted
         if configured {
             player.volume = muted ? 0 : outputVolume
-            if muted { player.stop() }
+            if muted { stop() }
         }
     }
 
-    func stop() { if configured { player.stop() } }
+    func stop() {
+        playbackID = nil
+        if configured { player.stop() }
+    }
 
     /// Release the hardware while sleeping, retaining the graph and decoded
     /// buffers. The next reaction restarts the engine through prepare().
     func suspend() {
         guard configured else { return }
-        player.stop()
+        stop()
         engine.pause()
     }
 

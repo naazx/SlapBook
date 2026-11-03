@@ -45,6 +45,23 @@ enum HardwareProbe {
         return nil
     }
 
+    /// Caller owns the matching driver reference. Search only below this device.
+    static func accelerationDriver(for service: io_service_t) -> io_service_t? {
+        var iterator: io_iterator_t = 0
+        guard IORegistryEntryCreateIterator(service, kIOServicePlane, IOOptionBits(kIORegistryIterateRecursively), &iterator) == KERN_SUCCESS else {
+            return nil
+        }
+        defer { IOObjectRelease(iterator) }
+        while case let entry = IOIteratorNext(iterator), entry != 0 {
+            if IOObjectConformsTo(entry, "AppleSPUHIDDriver") != 0,
+               number("PrimaryUsagePage", service: entry) == 0xff00, number("PrimaryUsage", service: entry) == 3 {
+                return entry
+            }
+            IOObjectRelease(entry)
+        }
+        return nil
+    }
+
     private static func number(_ key: String, service: io_service_t) -> Int? {
         (IORegistryEntryCreateCFProperty(service, key as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? NSNumber)?.intValue
     }

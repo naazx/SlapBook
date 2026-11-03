@@ -6,6 +6,23 @@ import Testing
 
 @MainActor
 struct LifecycleTests {
+    @Test func automaticInputLeavesCurrentAudioPlayingButPreviewCanReplaceIt() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+        let model = fixture.model
+        model.testSound()
+        fixture.audio.isPlayingReaction = true
+
+        model.triggerManualTap()
+        #expect(model.tapCount == 1)
+        #expect(model.reactionCount == 1)
+        #expect(fixture.audio.played == [1])
+
+        model.testSound(tapCount: 2)
+        #expect(model.reactionCount == 2)
+        #expect(fixture.audio.played == [1, 2])
+    }
+
     @Test func sleepCancelsGroupedReactionAndWakeStartsInputsOnce() async throws {
         let fixture = try Fixture(grouped: true, motionEnabled: true)
         defer { fixture.cleanup() }
@@ -198,6 +215,7 @@ private final class Fixture {
 
 @MainActor
 private final class FakeAudio: ReactionAudioService {
+    var isPlayingReaction = false
     var played: [Int] = []
     var suspends = 0
     var warmed: [[URL]] = []
