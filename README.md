@@ -17,8 +17,11 @@ No third-party dependencies, network service, microphone capture, or administrat
 5. Click **Test Sound**. This works with detection off and bypasses its cooldown.
    Single / Double / Triple buttons audition the separately authored reactions.
    Sound testing respects mute and volume. Use Settings → Stop Playback to stop a clip.
-6. Close the window to keep the menu bar app running. Use **Open SlapBook…** to
-   reopen it, and **Quit** to exit. The app intentionally has no Dock icon.
+6. Close the window to keep the menu bar app running. Use **Open SlapBook…** in the
+   menu bar, or open the app again from Finder or Spotlight, to bring it back, and
+   **Quit** to exit. The app intentionally has no Dock icon. To start quietly in the
+   menu bar (for example at login), turn off **Open this window when SlapBook starts**
+   in Settings & About.
 
 The deployment target is **macOS 14**. Runtime verification is performed on the
 available macOS 27.0.1 host; older OS versions have not been tested. Swift language
@@ -119,8 +122,9 @@ To use real human performances or other audio you have rights to use:
    Up to 100 files are stored. Corrupt/unsupported files produce visible errors.
 3. Imported files are copied into the app's Application Support directory; moving
    the source file afterward is safe. No persistent external file permissions are needed.
-4. Select the active pack (remembered across launches), choose **Use Custom Mode**,
-   and optionally assign each
+4. Select the active pack (remembered across launches), choose **Use Custom Mode**
+   (offered only while the library has sounds; removing the last one switches back
+   to Dramatic Moans), and optionally assign each
    file to Single, Double, Triple, or Any rhythm. A gesture without matching clips
    produces an error instead of playing an unrelated fallback.
 5. Use the test buttons to audition. The trash button removes that imported copy.
@@ -150,7 +154,22 @@ They do not sleep the computer or change real Login Items. Build/test results
 and remaining manual checks are recorded in [docs/VALIDATION.md](docs/VALIDATION.md).
 The default test scheme excludes UI automation.
 
-A locally signed Apple silicon build is packaged in `dist/SlapBook-Pro-macOS.zip`.
-Unzip it and open `SlapBook.app` to try the app immediately. This is a local developer
-build, not a notarized distribution release. Xcode remains the recommended way to
-build, debug, or sign it with your own team.
+A locally signed universal (Apple silicon and Intel) build is packaged in
+`dist/SlapBook-Pro-macOS.zip`. Unzip it and open `SlapBook.app` to try the app
+immediately. This is a local developer build, not a notarized distribution release.
+
+## Release builds
+
+`Tools/release.sh` rebuilds that zip: a universal Release app, built off Desktop,
+with its signature and App Sandbox verified. Without arguments it signs ad hoc,
+so the result opens only on this Mac. To distribute to other Macs you need a paid
+Apple Developer account and a **Developer ID Application** certificate:
+
+```sh
+xcrun notarytool store-credentials slapbook
+DEVELOPER_ID="Developer ID Application: Your Name (TEAMID)" NOTARY_PROFILE=slapbook Tools/release.sh
+```
+
+The first command stores notarization credentials in your keychain once. The second
+signs with a secure timestamp, submits to Apple's notary service, staples the ticket
+and checks Gatekeeper before repackaging the zip.

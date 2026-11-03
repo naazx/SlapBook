@@ -1,14 +1,14 @@
 # Validation and handoff
 
-Updated 2 November 2026. Work is on `codex/final-lifecycle-polish` in focused local
-commits. The previous version (`3156246`) is on GitHub's `main`. No installation,
-login-item registration, or distribution deployment was performed.
+Updated 3 November 2026. Earlier work merged through PRs #1 and #2; the completion
+pass below is on `codex/post-merge-polish`. No installation, login-item
+registration, or distribution deployment was performed.
 
 ## Current verified build
 
 - Xcode 27.0 / Swift 6.4, Swift 6 language mode, macOS 14 deployment target.
 - Debug test build and optimized Apple silicon Release build succeed on macOS 27.0.1.
-- **19 unit tests passed**, zero failures. The shared SlapBook scheme runs only
+- **20 unit tests passed**, zero failures. The shared SlapBook scheme runs only
   SlapBookTests, including through ⌘U. UI automation is excluded at the user's request.
 - Tests cover gravity rejection, warm-up, sensitivity, debounce, invalid data,
   sleep gaps, cooldown, settings persistence, all 36 bundled WAVs, format conversion,
@@ -73,6 +73,26 @@ registration noise appeared. Route changes were reviewed in code, not with
 hardware: every reaction calls `prepare()`, which rechecks the output format and
 restarts a stopped engine, so a device switch is picked up on the next reaction.
 
+## Completion pass (3 November 2026)
+
+- Custom mode is offered only while imported sounds exist. Removing the last
+  sound, or restoring a saved Custom mode with an empty library, falls back to
+  Dramatic Moans instead of answering every input with an error. Unit tested.
+- The window no longer has to open at every launch: "Open this window when
+  SlapBook starts" (default on) lets it start in the menu bar only. Opening the
+  app again from Finder or Spotlight now shows the window; previously, with no
+  Dock icon, nothing visible happened once the window was closed. Verified on
+  the launched app by counting its on-screen windows: one at a default launch,
+  none with the setting off, one after reopening. The macOS 14 fallback (closing
+  the window after launch) compiles but was not run on macOS 14.
+- `Tools/release.sh` builds a universal arm64/x86_64 Release app and packages
+  the zip. The ad hoc path was run end to end and the unzipped app launched.
+  The Developer ID and notarization path was only syntax- and argument-checked:
+  this Mac has no Developer ID certificate.
+- The copyright string no longer claims all audio is synthesized, and the app
+  declares the Entertainment category.
+- 20 unit tests pass.
+
 ## Focused implementation commits
 
 - `69a418d` — unavailable audio outputs and prepared-engine suspension.
@@ -85,8 +105,8 @@ restarts a stopped engine, so a device switch is picked up on the next reaction.
 
 ## Saved artifacts
 
-- `dist/SlapBook-Pro-macOS.zip`: refreshed local ad hoc signed developer build,
-  containing SlapBook.app. This is not a notarized distribution release.
+- `dist/SlapBook-Pro-macOS.zip`: universal ad hoc signed developer build from
+  `Tools/release.sh`, containing SlapBook.app. Not a notarized distribution release.
 - `/tmp/SlapBookPro-release/Build/Products/Release/SlapBook.app`: Release app.
 - `/tmp/slapbook-final-release.log`: final successful Release build log.
 - `/tmp/slapbook-human-test.log`: final 19-unit-test run, no UI automation.
