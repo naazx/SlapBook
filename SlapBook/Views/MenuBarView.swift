@@ -24,7 +24,7 @@ struct MenuBarView: View {
             Toggle("Enable Detection", isOn: $model.settings.detectionEnabled)
             Toggle("Mute", isOn: $model.settings.muted)
             Picker("Personality", selection: $model.settings.mode) {
-                ForEach(SoundMode.allCases.filter { $0 != .secret || model.secretUnlocked }) { mode in Text(mode.title).tag(mode) }
+                ForEach(model.availableModes) { mode in Text(mode.title).tag(mode) }
             }
             HStack {
                 Button { model.testSound() } label: { Label("Test Sound", systemImage: "play.fill") }.buttonStyle(.borderedProminent).tint(.purple)

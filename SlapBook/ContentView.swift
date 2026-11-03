@@ -182,7 +182,7 @@ struct ContentView: View {
             HStack(alignment: .top, spacing: 18) {
                 card(title: "The mood", symbol: "theatermasks") {
                     Picker("Sound Mode", selection: $model.settings.mode) {
-                        ForEach(SoundMode.allCases.filter { $0 != .secret || model.secretUnlocked }) { mode in Text(mode.title).tag(mode) }
+                        ForEach(model.availableModes) { mode in Text(mode.title).tag(mode) }
                     }.labelsHidden().pickerStyle(.menu).frame(maxWidth: .infinity, alignment: .leading)
                     Text(model.settings.mode.subtitle).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     sliderRow("Volume", value: $model.settings.volume, range: 0...1, text: "\(Int(model.settings.volume * 100))%", symbol: "speaker.wave.2")
